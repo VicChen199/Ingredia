@@ -1,53 +1,60 @@
-# Starter Skeleton — C12 Fall 2026
+# Ingredia
 
-Use this template, its your app now.
+Ingredia translates confusing chemical nomenclature, fine print, and marketing spin into plain language. From grocery shelves to online checkouts, it breaks down formulations across food, skincare, cosmetics, and household products so you can see what you are buying.
 
-(And when it *is* your app — named, with a feature or two shipped — replace
-this file: `cp README.template.md README.md`, fill in the placeholders, land
-it as a PR. This page is the starter's README, not your project's. See
-[README.template.md](README.template.md).)
+Most ingredient lists are written for chemists and regulators. Scientific names, nested ingredients, and front-of-package claims make it hard to check allergens, dietary preferences, or safety while shopping.
 
-The layers of a real web application exists in this repo — a page, an API,
-a database, tests, CI. All of it minimal. **You will work in
-layers we haven't studied yet. That's not a gap in the plan; that's the job.**
-Each week of class goes deep on one layer that's already here under your feet.
+**Live:** not deployed yet
 
-## Get running (no Docker, no installs beyond Node)
+## What it does
+
+The product, as features land. Each line links its spec once that spec exists under `docs/specs/`.
+
+- **Label scanner.** A photo of a bottle, wrapper, or tube is parsed into plain-English names (Tocopherol → Vitamin E) with badges for allergens, irritants, pore-clogging agents, and dietary flags.
+- **Ingredient encyclopedia.** Fuzzy and synonym search across common names, formulations, and IUPAC names, plus origin, why it is used, regulatory status, and evidence-based context.
+- **Browser extension.** Ingredient tables on major retailers are detected and annotated in place, with context that changes by category (comedogenic ingredients on beauty sites, additives on grocery sites).
+
+### How it works
+
+1. **Capture or browse.** Snap a label in store, or open a product page with the extension.
+2. **Translate.** Ingredia parses the text against a centralized ingredient knowledge base.
+3. **Decide.** Read the plain-language summary, check flags against your preferences, and buy with that in view.
+
+### Who it's for
+
+- **Allergy and sensitivity.** Hidden fragrance allergens, gluten derivatives, sulfates.
+- **Sourcing claims.** Vegan, cruelty-free, and sustainability claims you can check.
+- **Everyday shopping.** A read of the label without a separate search in the aisle.
+
+## Run it locally
+
+No Docker, no cloud account — everything runs from npm.
 
 ```bash
 pnpm install
-pnpm prisma:generate     # builds the typed database client (empty schema — example branches add models)
-pnpm dev                 # starts web + YOUR OWN Postgres server + Azurite
+pnpm prisma:generate     # typed DB client
+pnpm dev                 # web + worker + your own Postgres + Azurite
+pnpm db:seed             # demo data (with dev running)
 ```
 
-`pnpm dev` starts **four processes**: the Next.js app, the background worker,
-a real PostgreSQL server that npm installed for you (data in `.pgdata/`,
-migrations auto-apply on boot), and Azurite (local Azure blob + queue storage,
-data in `.azurite/`).
+Check it worked: `http://localhost:3000/api/health` → `{"status":"ok","db":"ok"}`.
+All commands: see `package.json` scripts, or [`CONTRIBUTING.md`](CONTRIBUTING.md) for the
+pre-push set (`pnpm test && pnpm typecheck && pnpm build`).
 
-Check it worked: `http://localhost:3000/api/health`
-says `{"status":"ok","db":"ok"}`.
+## How it's built
 
-## The map
+The web app is the UI and API. The worker polls a queue and processes jobs. Postgres holds application data; local Azurite stands in for blob and queue storage until an env var points the same code at Azure. Every cloud dependency is a seam: local stand-in by default, real Azure when configured. See [`docs/specs/seams.md`](docs/specs/seams.md).
 
-```
-browser ──fetch────▶ apps/web/app/api/health/route.ts
-                ───▶ packages/db ──▶ YOUR Postgres server (:5433)
-                ───▶ packages/services (queue + storage + notify) ──▶ Azurite
-                    apps/worker
-                    polls queue, processes jobs
-```
-
-Every cloud dependency follows the same pattern — a **seam**: local stand-in by
-default, real Azure when an env var says so. See `docs/specs/seams.md`.
-
-## The monorepo layout
+The deeper story lives in the docs, organized by the question you're asking —
+decisions in [`docs/adr/`](docs/adr/), behavior in [`docs/specs/`](docs/specs/),
+history in [`docs/postmortems/`](docs/postmortems/), procedures in
+[`docs/runbooks/`](docs/runbooks/). Start at [`docs/README.md`](docs/README.md).
 
 ```
 apps/                           # deployable processes
 ├── web/                        #   Next.js app (the UI)
 ├── worker/                     #   background worker
-├── db-server/                  #   dev-only Postgres host (replaced by Azure in Week 10)
+├── db-server/                  #   dev-only Postgres host
 └── migrate/                    #   migration CLI + seed script
 
 packages/                       # shared libraries
@@ -55,66 +62,21 @@ packages/                       # shared libraries
 ├── services/                   #   Azure adapters (queue, storage, notify)
 ├── domain/                     #   Zod schemas + queries (web-only)
 ├── log/                        #   pino logger
-└── auth/                       #   dev identity stub (real auth in Week 8)
+└── auth/                       #   dev identity stub
 ```
 
-**Apps** are deployable. **Packages** are shared — no app imports from another app.
+Apps are deployable. Packages are shared — no app imports from another app.
 Every package has a README explaining its role.
 
-**Example branches** add their own models, API routes, workers, and feature specs
-under `docs/specs/<domain>/`.
+## Team
 
-## Rules of the road
+- Names and GitHub handles go here.
 
-- Work on a branch; open a PR; your pod reviews it with the checklist. Every PR gets
-  a green check or a red X from CI — red means fix it before asking for review.
-- **No AI-generated code gets merged unread.** You own every line in your PR.
-- Stuck 15 minutes? Pod thread → stand-up → TA → office hours. In that order.
+## Contributing
 
-## Commands
+Workflow, ground rules, and the documentation system: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Agent conventions (any harness): [`AGENTS.md`](AGENTS.md).
 
-| Command | What it does |
-|---|---|
-| `pnpm dev` | Start all four processes: web + worker + Postgres + Azurite |
-| `pnpm dev:web` | Next.js app only |
-| `pnpm worker` | Background worker only |
-| `pnpm db:dev` | Dev Postgres server only |
-| `pnpm azurite` | Azure storage emulator only |
-| `pnpm test` | Run all unit tests (what CI runs) |
-| `pnpm test:integration` | Run integration tests against PGlite |
-| `pnpm typecheck` | TypeScript, strict, for every package |
-| `pnpm db:migrate` | Apply migrations over the wire |
-| `pnpm db:reset` | Nuke local DB, re-migrate |
-| `pnpm prisma:generate` | Regenerate the Prisma client |
+---
 
-## OpenCode agents
-
-This repo ships with opencode agent files in `.opencode/`. The default agent is
-`mentor` — a teaching-mode agent that explains rather than edits. Switch to
-`build` when you want to execute a plan. The `@project` scope is a placeholder;
-replace it via search-and-replace across all `package.json` files.
-
-## FAQ
-
-**Why am I running my own database server?** Because databases ARE servers —
-one process owns the data files, everything else (the web app, the worker,
-`psql`) connects as a client. npm installed a real PostgreSQL for you
-(`apps/db-server/` runs it; data in `.pgdata/`; `db:reset` nukes it). In
-Week 10 you swap YOUR server for Azure's managed one by setting a single env
-var (`DATABASE_URL`) — same wire protocol, same driver, same code. Tests skip
-the server entirely and run PGlite (Postgres-in-WebAssembly) in memory —
-that's the third door in `packages/db/src/client.ts`.
-
-**What's Azurite?** Microsoft's official storage emulator, running from npm —
-fake Azure Blob + Queue storage on your laptop (data in `.azurite/`). Attached
-images and job messages live in its blob / queue stores. In Week 10, one env var
-points the same code at real Azure Storage.
-
-**Why is there stuff in here we haven't learned?** Because that's what every
-codebase you'll ever be hired into looks like. Use AI to read it — then verify
-what it tells you by running the code. That habit is the whole course.
-
-**Where are the example apps?** This is the boilerplate `main` branch — empty
-schema, generic infrastructure. Switch to an `example/*` branch to see a
-working application built on the same skeleton. Each example branch has its
-own feature specs in `docs/specs/<domain>/`.
+<sub>Built on the CTP C12 full-stack starter — Next.js · Prisma · Postgres · Azure.</sub>
