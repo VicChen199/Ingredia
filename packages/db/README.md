@@ -4,8 +4,8 @@ The database seam. Owns the Prisma schema, the generated client, the migration
 files, and the `applyMigrations` helper. Every app and most other packages
 import from here.
 
-**Boilerplate:** the schema is empty (generator + datasource only). Example
-branches add their own models, enums, and migration files.
+The POC schema (user, catalog, capture, favorite) lives in `prisma/schema.prisma`.
+The first migration is the flat file `prisma/migrations/0001_init.sql`.
 
 ## Public API
 

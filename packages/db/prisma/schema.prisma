@@ -1,5 +1,5 @@
-// The data model for the entire app. Boilerplate — empty schema with no models.
-// Example branches add their own models, enums, and migrations here.
+// POC data model. Cloud and stretch tables are later migrations.
+// See docs/specs/data-model.md.
 
 generator client {
   provider        = "prisma-client-js"
@@ -11,4 +11,155 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum AliasNameType {
+  common
+  inci
+  iupac
+  cas
+  e_number
+  brand_trade
+}
+
+enum OriginSummary {
+  plant
+  synthetic
+  animal
+  mineral
+  mixed
+}
+
+enum CaptureSource {
+  camera
+  extension
+}
+
+enum CaptureStatus {
+  uploaded
+  extracted
+  parsed
+  failed
+}
+
+enum MatchStatus {
+  matched
+  unknown
+  ambiguous
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  preferences UserPreference[]
+  captures    Capture[]
+  favorites   Favorite[]
+}
+
+model PreferenceFlag {
+  id            String  @id @default(cuid())
+  code          String  @unique
+  label         String
+  categoryScope String? @map("category_scope")
+
+  userPreferences UserPreference[]
+  ingredientFlags IngredientFlag[]
+}
+
+model UserPreference {
+  userId String @map("user_id")
+  flagId String @map("flag_id")
+
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flag PreferenceFlag @relation(fields: [flagId], references: [id], onDelete: Restrict)
+
+  @@id([userId, flagId])
+}
+
+model Ingredient {
+  id          String @id @default(cuid())
+  slug        String @unique
+  displayName String @map("display_name")
+
+  aliases IngredientAlias[]
+  profile IngredientProfile?
+  flags   IngredientFlag[]
+  items   CaptureItem[]
+}
+
+model IngredientAlias {
+  ingredientId String        @map("ingredient_id")
+  name         String
+  nameType     AliasNameType @map("name_type")
+  normalized   String
+
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@id([ingredientId, normalized, nameType])
+}
+
+model IngredientProfile {
+  ingredientId    String        @id @map("ingredient_id")
+  originSummary   OriginSummary @map("origin_summary")
+  manufacturerUse String        @map("manufacturer_use")
+  summary         String
+
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+}
+
+model IngredientFlag {
+  ingredientId    String  @map("ingredient_id")
+  flagId          String  @map("flag_id")
+  productCategory String? @map("product_category")
+
+  ingredient Ingredient     @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  flag       PreferenceFlag @relation(fields: [flagId], references: [id], onDelete: Restrict)
+
+  @@id([ingredientId, flagId])
+}
+
+model Capture {
+  id        String        @id @default(cuid())
+  userId    String        @map("user_id")
+  source    CaptureSource
+  status    CaptureStatus
+  blobName  String?       @map("blob_name")
+  rawText   String?       @map("raw_text")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CaptureItem[]
+  favorites Favorite[]
+
+  @@unique([id, userId])
+}
+
+model CaptureItem {
+  captureId    String      @map("capture_id")
+  sortOrder    Int         @map("sort_order")
+  rawToken     String      @map("raw_token")
+  ingredientId String?     @map("ingredient_id")
+  matchStatus  MatchStatus @map("match_status")
+
+  capture    Capture     @relation(fields: [captureId], references: [id], onDelete: Cascade)
+  ingredient Ingredient? @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@id([captureId, sortOrder])
+}
+
+model Favorite {
+  userId    String @map("user_id")
+  captureId String @map("capture_id")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  capture Capture @relation(fields: [captureId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([userId, captureId])
 }
