@@ -1,44 +1,82 @@
-# Ingredia 🔍
+# Ingredia
 
-Ingredia is an ingredient intelligence platform that translates confusing chemical nomenclature, fine print, and marketing spin into plain, accessible language. From grocery shelves to online checkouts, Ingredia breaks down technical formulations across food, skincare, cosmetics, and household items so you understand exactly what you are buying.
+Ingredia translates confusing chemical nomenclature, fine print, and marketing spin into plain language. From grocery shelves to online checkouts, it breaks down formulations across food, skincare, cosmetics, and household products so you can see what you are buying.
+
+Most ingredient lists are written for chemists and regulators. Scientific names, nested ingredients, and front-of-package claims make it hard to check allergens, dietary preferences, or safety while shopping.
+
+**Live:** not deployed yet
+
+## What it does
+
+The product, as features land. Each line links its spec once that spec exists under `docs/specs/`.
+
+- **Label scanner.** A photo of a bottle, wrapper, or tube is parsed into plain-English names (Tocopherol → Vitamin E) with badges for allergens, irritants, pore-clogging agents, and dietary flags.
+- **Ingredient encyclopedia.** Fuzzy and synonym search across common names, formulations, and IUPAC names, plus origin, why it is used, regulatory status, and evidence-based context.
+- **Browser extension.** Ingredient tables on major retailers are detected and annotated in place, with context that changes by category (comedogenic ingredients on beauty sites, additives on grocery sites).
+
+### How it works
+
+1. **Capture or browse.** Snap a label in store, or open a product page with the extension.
+2. **Translate.** Ingredia parses the text against a centralized ingredient knowledge base.
+3. **Decide.** Read the plain-language summary, check flags against your preferences, and buy with that in view.
+
+### Who it's for
+
+- **Allergy and sensitivity.** Hidden fragrance allergens, gluten derivatives, sulfates.
+- **Sourcing claims.** Vegan, cruelty-free, and sustainability claims you can check.
+- **Everyday shopping.** A read of the label without a separate search in the aisle.
+
+## Run it locally
+
+No Docker, no cloud account — everything runs from npm.
+
+```bash
+pnpm install
+pnpm prisma:generate     # typed DB client
+pnpm dev                 # web + worker + your own Postgres + Azurite
+pnpm db:seed             # demo data (with dev running)
+```
+
+Check it worked: `http://localhost:3000/api/health` → `{"status":"ok","db":"ok"}`.
+All commands: see `package.json` scripts, or [`CONTRIBUTING.md`](CONTRIBUTING.md) for the
+pre-push set (`pnpm test && pnpm typecheck && pnpm build`).
+
+## How it's built
+
+The web app is the UI and API. The worker polls a queue and processes jobs. Postgres holds application data; local Azurite stands in for blob and queue storage until an env var points the same code at Azure. Every cloud dependency is a seam: local stand-in by default, real Azure when configured. See [`docs/specs/seams.md`](docs/specs/seams.md).
+
+The deeper story lives in the docs, organized by the question you're asking —
+decisions in [`docs/adr/`](docs/adr/), behavior in [`docs/specs/`](docs/specs/),
+history in [`docs/postmortems/`](docs/postmortems/), procedures in
+[`docs/runbooks/`](docs/runbooks/). Start at [`docs/README.md`](docs/README.md).
+
+```
+apps/                           # deployable processes
+├── web/                        #   Next.js app (the UI)
+├── worker/                     #   background worker
+├── db-server/                  #   dev-only Postgres host
+└── migrate/                    #   migration CLI + seed script
+
+packages/                       # shared libraries
+├── db/                         #   Prisma schema + client + apply-migrations
+├── services/                   #   Azure adapters (queue, storage, notify)
+├── domain/                     #   Zod schemas + queries (web-only)
+├── log/                        #   pino logger
+└── auth/                       #   dev identity stub
+```
+
+Apps are deployable. Packages are shared — no app imports from another app.
+Every package has a README explaining its role.
+
+## Team
+
+- Names and GitHub handles go here.
+
+## Contributing
+
+Workflow, ground rules, and the documentation system: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Agent conventions (any harness): [`AGENTS.md`](AGENTS.md).
 
 ---
 
-## 📌 The Problem
-
-Most product ingredient lists are written for chemists and regulatory bodies, not everyday shoppers. Complex scientific names, nested ingredients, and misleading front-of-package claims make it nearly impossible to quickly verify allergens, dietary preferences, or safety concerns while shopping.
-
----
-
-## ✨ Key Features
-
-### 📸 Point-and-Shoot Label Scanner
-* **Instant Physical Label Parsing:** Snap a photo of curved bottles, snack wrappers, or cosmetic tubes directly in the store aisle.
-* **Plain-English Translations:** Instantly maps cryptic chemical terms to everyday language (e.g., Tocopherol → Vitamin E).
-* **At-a-Glance Badges:** Clear highlights for allergens, irritants, pore-clogging agents, and dietary flags.
-
-### 📖 Ingredient Encyclopedia & Search
-* **Fuzzy & Synonym Search:** Look up common names, brand formulations, or scientific IUPAC names with built-in typo tolerance.
-* **Ingredient Deep Dives:** Learn an ingredient's origin (plant, synthetic, animal, mineral), why manufacturers use it, and its regulatory status.
-* **Evidence-Based Context:** Transparent, science-backed summaries that separate factual health considerations from internet fearmongering.
-
-### 🌐 E-Commerce Browser Extension
-* **Auto-Detection:** Automatically spots and reads ingredient tables across major retailers (Amazon, Sephora, Target, Ulta, and more).
-* **Inline Overlays:** Injects color-coded tooltips and highlights right onto the product page without disrupting your shopping flow.
-* **Category-Aware Insights:** Shifts context dynamically—identifying comedogenic ingredients on beauty sites and artificial additives on grocery platforms.
-
----
-
-## 🎯 How It Works
-
-1. **Capture or Browse:** Snap an image in-store or browse product pages online with the extension active.
-2. **Translate:** Ingredia parses the text and references a centralized ingredient knowledge base.
-3. **Decide:** Review the plain-language summary, check flagged items against your preferences, and check out with complete peace of mind.
-
----
-
-## 💡 Who It's For
-
-* **Allergy & Sensitivity Sufferers:** Catch hidden fragrance allergens, gluten derivatives, or sulfates instantly.
-* **Conscious Consumers:** Easily verify vegan, cruelty-free, or sustainable sourcing claims.
-* **Everyday Shoppers:** Skip the frantic internet searches in grocery aisles and shop with clarity.
+<sub>Built on the CTP C12 full-stack starter — Next.js · Prisma · Postgres · Azure.</sub>
