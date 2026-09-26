@@ -31,6 +31,7 @@ Requires the database server running (start it with `pnpm dev` or `pnpm db:dev`)
 
 ## The seed data
 
-The seed creates a single user (`demo-user`) with three starter items. It's safe
-to re-run — users upsert by ID, and items are only created if the user has none.
-Edit `src/seed.ts` to change the starting data.
+The seed upserts the stub user (`demo-user`) plus a small catalog: gluten,
+fragrance, and comedogenic flags, with matching ingredients, aliases, and
+profiles. It does not create captures. Safe to re-run. Edit `src/seed.ts` to
+change the starting data.

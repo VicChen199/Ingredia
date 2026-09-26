@@ -14,9 +14,12 @@ async function makeClient(): Promise<PrismaClient> {
   if (process.env.PGLITE_DATA_DIR) {
     // Test door: embedded engine, no server.
     const { PGlite } = await import("@electric-sql/pglite");
+    const { pg_trgm } = await import("@electric-sql/pglite/contrib/pg_trgm");
     const { PrismaPGlite } = await import("pglite-prisma-adapter");
     const { applyMigrations } = await import("./apply-migrations");
-    const pglite = new PGlite(process.env.PGLITE_DATA_DIR);
+    const pglite = new PGlite(process.env.PGLITE_DATA_DIR, {
+      extensions: { pg_trgm },
+    });
     await applyMigrations(pglite as unknown as Parameters<typeof applyMigrations>[0]);
     return new PrismaClient({ adapter: new PrismaPGlite(pglite) });
   }
