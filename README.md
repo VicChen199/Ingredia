@@ -70,6 +70,7 @@ Every package has a README explaining its role.
 
 ## Team
 
+- [Team charter](https://docs.google.com/document/d/1Gt8oZwL4n1LoJvlLRzX9xZLhN5dHVu47MSeTlz-W2gk/edit?usp=sharing)
 - Names and GitHub handles go here.
 
 ## Contributing
