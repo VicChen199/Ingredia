@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { CaptureStatus } from "@project/db";
 
 const OWNER_ID = "process-owner";
 const OTHER_USER_ID = "process-other";
@@ -25,7 +26,7 @@ type ProcessBody = {
   items: { sortOrder: number; rawToken: string; ingredientId: string | null; matchStatus: string }[];
 };
 
-async function createCapture(userId = OWNER_ID, status = db.CaptureStatus.uploaded) {
+async function createCapture(userId = OWNER_ID, status: CaptureStatus = db.CaptureStatus.uploaded) {
   const capture = await db.prisma.capture.create({
     data: { userId, source: db.CaptureSource.camera, status },
   });
