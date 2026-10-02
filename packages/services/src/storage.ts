@@ -7,10 +7,20 @@ const CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING ?? "UseDev
 const CONTAINER = "attachments";
 export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5 MB
 
+function attachmentsContainer() {
+  const client = BlobServiceClient.fromConnectionString(CONNECTION_STRING);
+  return client.getContainerClient(CONTAINER);
+}
+
+async function ensureAttachmentsContainer() {
+  const container = attachmentsContainer();
+  await container.createIfNotExists();
+  return container;
+}
+
 export async function storageAvailable(): Promise<boolean> {
   try {
-    const client = BlobServiceClient.fromConnectionString(CONNECTION_STRING);
-    await client.getContainerClient(CONTAINER).getProperties();
+    await ensureAttachmentsContainer();
     return true;
   } catch {
     return false;
@@ -35,8 +45,8 @@ export async function uploadAttachment(
   data: ArrayBuffer
 ): Promise<string> {
   const blobName = safeBlobName(itemId, filename);
-  const client = BlobServiceClient.fromConnectionString(CONNECTION_STRING);
-  const blockBlob = client.getContainerClient(CONTAINER).getBlockBlobClient(blobName);
+  const container = await ensureAttachmentsContainer();
+  const blockBlob = container.getBlockBlobClient(blobName);
   await blockBlob.uploadData(data, { blobHTTPHeaders: { blobContentType: contentType } });
   log.info({ blobName, bytes: data.byteLength }, "uploaded blob");
   return blobName;
