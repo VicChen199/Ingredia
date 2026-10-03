@@ -5,6 +5,14 @@ export {
   updateCapture,
 } from "./capture";
 export {
+  FavoriteError,
+  createFavorite,
+  deleteFavorite,
+  favoriteParamsSchema,
+  listFavorites,
+} from "./favorites";
+export type { FavoriteView } from "./favorites";
+export {
   MAX_PROCESS_TEXT_LENGTH,
   ProcessError,
   STUB_LABEL_TEXT,
