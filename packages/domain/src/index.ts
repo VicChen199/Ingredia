@@ -2,6 +2,8 @@ import { prisma } from "@project/db";
 import { z } from "zod";
 
 // Web-only domain logic: input validation schemas and database queries.
+export { CaptureReadError, captureReadParamsSchema, getCapture, listCaptures } from "./capture-read";
+export type { CaptureView } from "./capture-read";
 export {
   createCapture,
   getUserById,
