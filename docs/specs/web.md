@@ -14,6 +14,19 @@ on every branch, for every feature.
   blocked by the thing they're probing. Deploy probes, uptime checks, and the
   "stop the database and watch" demo all point here.
 
+## Preference endpoints
+
+- `GET /api/preferences` returns `{ preferences: [...] }` for the current user.
+  Each preference includes the shared flag's `id`, `code`, `label`, and
+  `categoryScope`.
+- `PUT /api/preferences/:flagId` enables a known flag for the current user and
+  returns the flag. Repeating the request is safe.
+- `DELETE /api/preferences/:flagId` disables a known flag and returns 204.
+  Repeating the request is safe.
+- An unknown or empty `flagId` returns the standard 404 or 400 error shape.
+- Preference queries are always scoped by the derived current user; the client
+  never supplies a user id.
+
 ## Async honesty (UI standard)
 
 - Every async region has three states: loading (skeleton), empty (with a
