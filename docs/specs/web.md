@@ -16,9 +16,10 @@ on every branch, for every feature.
 
 ## Preference endpoints
 
-- `GET /api/preferences` returns `{ preferences: [...] }` for the current user.
-  Each preference includes the shared flag's `id`, `code`, `label`, and
-  `categoryScope`.
+- `GET /api/preferences` returns `{ preferences: [...], availableFlags: [...] }`
+  for the current user, where `preferences` are the user's enabled flags and
+  `availableFlags` is the catalog of all known flags. Each flag includes its
+  `id`, `code`, `label`, and `categoryScope`.
 - `PUT /api/preferences/:flagId` enables a known flag for the current user and
   returns the flag. Repeating the request is safe.
 - `DELETE /api/preferences/:flagId` disables a known flag and returns 204.
