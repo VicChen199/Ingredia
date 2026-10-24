@@ -9,6 +9,8 @@ This document is the delivery contract (when, done-when, Prisma sequencing). Fie
 
 Later implementation uses Postgres + Prisma. Image **blob names** live in the database; bytes live in Azurite (POC / local stretch work) or Azure Blob (cloud). Do not store blob URLs as identity.
 
+How the cloud phase is built, and the add-on features that sit on these decisions, are in [cloud-phase.md](./cloud-phase.md). Add-ons do not replace the decisions in this document.
+
 ## Intent
 
 Camera + matching first. Make that app real in the cloud second. Browser extension last, as a second client of the same API.
@@ -125,6 +127,8 @@ A handful of ingredients, aliases, flags, and profiles — enough to demo gluten
 ## Cloud — same product, real hosting and catalog
 
 **Goal.** The camera app is usable by real people on the internet. Same domain tables as POC; harder ops and content.
+
+The four build tracks and the add-on features (real OCR, catalog curation) are in [cloud-phase.md](./cloud-phase.md).
 
 ### What this phase owns
 
