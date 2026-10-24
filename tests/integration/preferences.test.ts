@@ -103,4 +103,9 @@ describe("user preferences", () => {
     expect(prefs).toHaveLength(1);
     expect(prefs[0].flag.code).toBe("gluten");
   });
+
+  it("lists all available preference flags ordered by code", async () => {
+    const flags = await domain.listPreferenceFlags();
+    expect(flags.map((f) => f.code)).toEqual(["gluten", "peanut"]);
+  });
 });

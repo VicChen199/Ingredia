@@ -40,6 +40,12 @@ export class PreferenceNotFoundError extends Error {
   }
 }
 
+export async function listPreferenceFlags() {
+  return prisma.preferenceFlag.findMany({
+    orderBy: { code: "asc" },
+  });
+}
+
 export async function listUserPreferences(userId: string) {
   return prisma.userPreference.findMany({
     where: { userId },
