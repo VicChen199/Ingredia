@@ -23,6 +23,7 @@ production behavior diverge, controlled by configuration, not code branches.
 | Blob storage | Azurite | Azure Blob Storage | `AZURE_STORAGE_CONNECTION_STRING` |
 | Queue | Azurite | Azure Storage Queue | `AZURE_STORAGE_CONNECTION_STRING` |
 | Identity | Dev stub (`x-user-id` header, env fallback) | Real auth (OAuth, JWTs) | `ALLOW_DEV_IDENTITY` guard + package replacement |
+| OCR | Fixed sample label text | Azure AI Document Intelligence | `OCR_CONNECTION_STRING` |
 
 ## Design intent
 
@@ -44,6 +45,8 @@ production behavior diverge, controlled by configuration, not code branches.
 - [ADR-0005](../adr/0005-pglite-tests.md) — PGlite as the test-database seam.
 - [ADR-0008](../adr/0008-azurite-seam.md) — Azurite as the blob/queue seam.
 - [ADR-0003](../adr/0003-dev-identity-stub.md) — the identity stub as the auth
+  seam.
+- [ADR-0012](../adr/0012-ocr-seam.md) — Document Intelligence behind the OCR
   seam.
 
 ## Adding a new seam

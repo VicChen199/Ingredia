@@ -11,3 +11,4 @@ export {
   MAX_ATTACHMENT_BYTES,
 } from "./storage";
 export { stagePayload, onStage } from "./notify";
+export { readLabelText, parseOcrConnectionString, SAMPLE_LABEL_TEXT, OCR_TIMEOUT_MS } from "./ocr";

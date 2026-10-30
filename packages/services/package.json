@@ -11,13 +11,14 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@azure-rest/ai-document-intelligence": "^1.1.0",
     "@azure/storage-blob": "^12.26.0",
     "@azure/storage-queue": "^12.25.0",
-    "pg": "^8.13.0",
-    "@project/log": "workspace:*"
+    "@project/log": "workspace:*",
+    "pg": "^8.13.0"
   },
   "devDependencies": {
-    "vitest": "^4.0.0",
-    "@types/pg": "^8.11.0"
+    "@types/pg": "^8.11.0",
+    "vitest": "^4.0.0"
   }
 }
