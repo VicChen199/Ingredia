@@ -1,9 +1,16 @@
 import { currentUserId } from "@project/auth";
-import { ProcessError, processCapture, processRequestSchema } from "@project/domain";
+import { ProcessError, processCapture, processRequestSchema, type ImageTextReader } from "@project/domain";
+import { downloadAttachment, readLabelText } from "@project/services";
 
 export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+const readImageText: ImageTextReader = async (blobName) => {
+  const image = await downloadAttachment(blobName);
+  if (!image) throw new Error(`blob not found: ${blobName}`);
+  return readLabelText(image.data, image.contentType);
+};
 
 function errorResponse(code: string, message: string, status: number): Response {
   return Response.json({ error: { code, message } }, { status });
@@ -39,7 +46,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   }
 
   try {
-    const result = await processCapture(userId, id, parsed.data.text);
+    const result = await processCapture(userId, id, parsed.data.text, readImageText);
     return Response.json(result, { status: 200 });
   } catch (error) {
     if (error instanceof ProcessError) {
