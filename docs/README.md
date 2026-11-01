@@ -59,7 +59,7 @@ packages/                       # shared libraries
 ├── services/                   #   Azure adapters (queue, storage, notify)
 ├── domain/                     #   Zod schemas + queries (web-only)
 ├── log/                        #   pino logger
-└── auth/                       #   dev identity stub
+└── auth/                       #   Google Auth.js session
 ```
 
 **Rules**: apps are deployable, packages are shared; no app imports from another app;

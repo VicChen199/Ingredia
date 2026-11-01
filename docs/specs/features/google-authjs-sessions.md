@@ -16,7 +16,7 @@ migration: `packages/db/prisma/migrations/0002_auth.sql` adds `Account`, `Sessio
 existing_tests: `tests/integration/capture.test.ts`, `tests/integration/capture-read.test.ts`, `tests/integration/process.test.ts`, `tests/integration/favorites.test.ts`, `tests/integration/preferences.test.ts`, `tests/integration/smoke.test.ts`
 
 ## Slice: read-session
-status: todo
+status: done
 goal: `read-session` and `current-user-id`, with the Auth.js module mounted at `/api/auth/[...nextauth]`.
 owns: `packages/auth`, `apps/web/app/api/auth/[...nextauth]/route.ts`, `.env.example`
 routes: read-session, current-user-id
@@ -27,7 +27,7 @@ migration: none
 existing_tests: `tests/integration/capture.test.ts`, `tests/integration/capture-read.test.ts`, `tests/integration/process.test.ts`, `tests/integration/favorites.test.ts`, `tests/integration/preferences.test.ts`, `tests/integration/smoke.test.ts`
 
 ## Slice: google-sign-in
-status: todo
+status: done
 goal: `start-google-sign-in` and `complete-google-sign-in` on `/login`.
 owns: `packages/auth`, `apps/web/app/login/page.tsx`
 routes: start-google-sign-in, complete-google-sign-in
@@ -38,7 +38,7 @@ migration: none
 existing_tests: `tests/integration/capture.test.ts`, `tests/integration/capture-read.test.ts`, `tests/integration/process.test.ts`, `tests/integration/favorites.test.ts`, `tests/integration/preferences.test.ts`, `tests/integration/smoke.test.ts`
 
 ## Slice: guard-request
-status: todo
+status: done
 goal: `guard-request` checks the session cookie and does not open Postgres.
 owns: `apps/web/middleware.ts`
 routes: guard-request
@@ -49,9 +49,9 @@ migration: none
 existing_tests: `tests/integration/capture.test.ts`, `tests/integration/capture-read.test.ts`, `tests/integration/process.test.ts`, `tests/integration/favorites.test.ts`, `tests/integration/preferences.test.ts`, `tests/integration/smoke.test.ts`
 
 ## Slice: sign-out-and-unlink
-status: todo
+status: done
 goal: `sign-out`, `unlink-google`, the landing states, and removal of the `demo-user` seed.
-owns: `apps/web/app/page.tsx`, `apps/web/app/api/account/google/route.ts`, `packages/auth`, `apps/migrate/src/seed.ts`, `tests/integration/auth-account.test.ts`, `docs/specs/auth.md`, `docs/specs/phases/cloud-phase.md`, `docs/specs/seams.md`, `packages/auth/README.md`, `docs/specs/README.md`, `docs/specs/monorepo.md`, `docs/README.md`, `README.md`, `apps/web/README.md`, `docs/specs/web.md`, `docs/specs/capture/upload.md`, `docs/specs/capture/read.md`
+owns: `apps/web/app/page.tsx`, `apps/web/app/unlink-google-button.tsx`, `apps/web/app/api/account/google/route.ts`, `packages/auth`, `apps/migrate/src/seed.ts`, `tests/integration/auth-account.test.ts`, `docs/specs/auth.md`, `docs/specs/phases/cloud-phase.md`, `docs/specs/seams.md`, `packages/auth/README.md`, `docs/specs/README.md`, `docs/specs/monorepo.md`, `docs/README.md`, `README.md`, `apps/web/README.md`, `docs/specs/web.md`, `docs/specs/capture/upload.md`, `docs/specs/capture/read.md`
 routes: sign-out, unlink-google
 acceptance: Signed-out `/` runs `read-session`, shows a link to `/login`, and does not call `currentUserId()`. Signed-in `/` shows the existing preferences panel, Sign out, and Unlink Google. Sign out calls `signOut()`, deletes this `Session`, clears the cookie, leaves `User`, `Account`, captures, and favorites, and redirects to `/`. Unlink is `DELETE /api/account/google` with no body. It calls `currentUserId()`, then `unlinkGoogleAccount(userId)`, which runs `account.deleteMany({ where: { userId, provider: "google" } })` and does not touch `User`, `Session`, `Capture`, or `Favorite`. `204` empty when a row was deleted. `404` `{ error: { code: "not_found", message: "Google account not linked" } }` when none. `401` `{ error: { code: "unauthorized", message: "A signed-in user is required" } }` when `currentUserId()` throws. `204` and `404` stay on signed-in `/`. `204` shows Google unlinked. `404` shows the not-linked message. The seed deletes the `demo-user` upsert only. Catalog rows stay. `tests/integration/auth-account.test.ts` mocks `currentUserId` the same way as the capture tests. It shows unlink leaving `User`, `Capture`, and `Favorite`, the unique `(provider, providerAccountId)` failure, and a different `providerAccountId` as a different user. Rewrite `docs/specs/auth.md`. In `docs/specs/phases/cloud-phase.md`, remove only the sentence that `auth.md` still says GitHub. Update the other owned docs so identity is the Google session. Do not edit `docs/adr/0003-dev-identity-stub.md`, `docs/specs/phases/development-phases.md`, `docs/specs/phases/data-model.md`, or `docs/specs/capture/favorites.md`. Do not change capture, favorite, preference, or health handlers.
 done_when: The landing, sign-out, and unlink outcomes above hold. Existing tests still mock `@project/auth`. `pnpm test`, `pnpm typecheck`, and `pnpm build` pass without a Google round-trip.

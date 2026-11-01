@@ -21,7 +21,7 @@ Add-ons extend the camera loop. They do not replace Auth.js, Azure, Prisma, or t
 | Favorite points at a Capture. No Product, listing, or visit tables in cloud. | [development-phases.md](./development-phases.md) |
 | Domain queries stay in `packages/domain`, imported by the web app. | [ADR-0009](../../adr/0009-domain-web-only.md) |
 
-[auth.md](../auth.md) still says GitHub. That is the template leftover. The identity track updates it to Google. The provider is not an open choice.
+That is the template leftover. The identity track updates it to Google. The provider is not an open choice.
 
 ## Four tracks
 

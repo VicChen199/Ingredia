@@ -1,10 +1,23 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@project/db";
 import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+
+const prismaAdapter = PrismaAdapter(prisma as unknown as Parameters<typeof PrismaAdapter>[0]);
 
 const nextAuth = NextAuth({
-  adapter: PrismaAdapter(prisma as unknown as Parameters<typeof PrismaAdapter>[0]),
-  providers: [],
+  adapter: {
+    ...prismaAdapter,
+    linkAccount(account) {
+      // Google is an OIDC provider. The stored Account type is oauth.
+      return prismaAdapter.linkAccount?.({ ...account, type: "oauth" });
+    },
+  },
+  providers: [Google],
+  pages: {
+    signIn: "/login",
+    error: "/login",
+  },
   session: { strategy: "database" },
   callbacks: {
     session({ session, user }) {
@@ -25,6 +38,8 @@ const nextAuth = NextAuth({
 });
 
 export const handlers = nextAuth.handlers;
+export const signIn = nextAuth.signIn;
+export const signOut = nextAuth.signOut;
 
 export async function auth(): Promise<{
   user: {

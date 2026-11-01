@@ -60,5 +60,5 @@ Every route handler and Server Action, in order:
 
 ## Key decisions
 
-- [ADR-0003](../adr/0003-dev-identity-stub.md) — identity stub + production guard.
+- [ADR-0003](../adr/0003-dev-identity-stub.md) — identity is the Google session. `currentUserId()` reads it.
 - [ADR-0009](../adr/0009-domain-web-only.md) — schemas/queries live in `packages/domain`.
