@@ -1,5 +1,5 @@
 // POC data model. Cloud and stretch tables are later migrations.
-// See docs/specs/data-model.md.
+// See docs/specs/phases/data-model.md.
 
 generator client {
   provider        = "prisma-client-js"

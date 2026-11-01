@@ -11,17 +11,17 @@ Add-ons extend the camera loop. They do not replace Auth.js, Azure, Prisma, or t
 
 | Decision | Where it lives |
 |---|---|
-| Postgres + Prisma, one schema, additive migrations | [ADR-0004](../adr/0004-prisma-orm.md) |
-| `currentUserId()`; the dev stub throws in production | [ADR-0003](../adr/0003-dev-identity-stub.md), [auth.md](./auth.md) |
+| Postgres + Prisma, one schema, additive migrations | [ADR-0004](../../adr/0004-prisma-orm.md) |
+| `currentUserId()`; the dev stub throws in production | [ADR-0003](../../adr/0003-dev-identity-stub.md), [auth.md](../auth.md) |
 | Auth.js database sessions. Google is `provider = "google"`. `Account` is unique on `(provider, providerAccountId)`. No `password`. No `google_id` on `User`. Unlink deletes `Account` only. | [development-phases.md](./development-phases.md), [data-model.md](./data-model.md) |
-| Azure Postgres and Azure Blob. The row stores `blob_name`, never a URL. Local bytes stay on Azurite. | [deploy.md](./deploy.md), [storage.md](./storage.md), [ADR-0006](../adr/0006-blob-storage.md), [ADR-0008](../adr/0008-azurite-seam.md) |
+| Azure Postgres and Azure Blob. The row stores `blob_name`, never a URL. Local bytes stay on Azurite. | [deploy.md](../deploy.md), [storage.md](../storage.md), [ADR-0006](../../adr/0006-blob-storage.md), [ADR-0008](../../adr/0008-azurite-seam.md) |
 | `Evidence` and `RegulatoryStatus`. The profile stays the short blurb. US vs EU is two regulatory rows. | [data-model.md](./data-model.md) |
 | Encyclopedia `INSERT`s stay out of migrations. | [development-phases.md](./development-phases.md) |
 | Matching is `IngredientAlias.normalized` plus `pg_trgm`. Aliases are unique per ingredient. | [data-model.md](./data-model.md) |
 | Favorite points at a Capture. No Product, listing, or visit tables in cloud. | [development-phases.md](./development-phases.md) |
-| Domain queries stay in `packages/domain`, imported by the web app. | [ADR-0009](../adr/0009-domain-web-only.md) |
+| Domain queries stay in `packages/domain`, imported by the web app. | [ADR-0009](../../adr/0009-domain-web-only.md) |
 
-[auth.md](./auth.md) still says GitHub. That is the template leftover. The identity track updates it to Google. The provider is not an open choice.
+[auth.md](../auth.md) still says GitHub. That is the template leftover. The identity track updates it to Google. The provider is not an open choice.
 
 ## Four tracks
 
@@ -48,7 +48,7 @@ Callers keep `const userId = await currentUserId()`. Tests that mock `@project/a
 
 ### Hosting
 
-**Goal.** The same camera app survives a restart on Azure. This track applies [deploy.md](./deploy.md) and [seams.md](./seams.md). It does not add product behavior.
+**Goal.** The same camera app survives a restart on Azure. This track applies [deploy.md](../deploy.md) and [seams.md](../seams.md). It does not add product behavior.
 
 Image build in CI, a new Container Apps revision at 0% traffic, smoke `GET /api/health` with `db: "ok"`, then promote. Secrets live on the host. `.env.example` lists every variable. Google redirect URIs for the live origin are recorded here and used by Identity’s client config.
 
@@ -81,7 +81,7 @@ These are new behavior on the system above. The base tables, auth product, and h
 
 ### Read the label
 
-**Attaches to.** The extract step in `POST /api/captures/:id/process`. Today the route does not read the blob. Optional JSON `{ "text" }` is the label. With no text, the extractor returns a fixed sample. Status still walks `uploaded → extracted → parsed` in the web request. [capture/process.md](./capture/process.md).
+**Attaches to.** The extract step in `POST /api/captures/:id/process`. Today the route does not read the blob. Optional JSON `{ "text" }` is the label. With no text, the extractor returns a fixed sample. Status still walks `uploaded → extracted → parsed` in the web request. [capture/process.md](../capture/process.md).
 
 **Keeps.** The paste path. The status machine. `blob_name` as the image identity. No new tables.
 
@@ -93,7 +93,7 @@ Cloud can ship while this add-on is still the stub. Matching and favorites alrea
 |---|---|---|
 | A. Leave the stub | Nothing. The stored photo is unused until someone pastes text. | “Upload a label” does not yet mean “read a label.” |
 | B. One server function. Recommended. | `extractText(bytes, contentType) → string` inside the existing extract step. Pasted `text` still wins when the client sends it. The blob is read only when `text` is absent. | A large photo can time out the request. The engine is a secret and a per-image cost. |
-| C. A worker job | Upload or process enqueues a job. The worker writes `raw_text`. | The worker cannot import `packages/domain` ([ADR-0009](../adr/0009-domain-web-only.md)) unless that ADR is superseded. More machinery before we know the request is too slow. |
+| C. A worker job | Upload or process enqueues a job. The worker writes `raw_text`. | The worker cannot import `packages/domain` ([ADR-0009](../../adr/0009-domain-web-only.md)) unless that ADR is superseded. More machinery before we know the request is too slow. |
 
 **Engine, only if B.** One of Google Cloud Vision or Azure Document Intelligence, behind `extractText`, so the route does not name the vendor. Pick when the add-on is built. Swapping the engine later does not change Capture.
 
@@ -113,7 +113,7 @@ On-device OCR is a later client that sends `text`. The server path stays the pas
 |---|---|---|
 | A. Git-reviewed catalog files. Recommended. | `apps/migrate/src/catalog/` plus the seed loader. A pull request is the review. | Coverage grows only as fast as reviews. |
 | B. A spreadsheet or CSV import into those same files | A checked-in converter that emits the catalog files. People edit a sheet; git still holds the result. | Two formats to keep aligned. |
-| C. An admin UI | Signed-in editors write rows in the app. | A new role, audit, and a privacy story [auth.md](./auth.md) already postponed. Out of cloud. |
+| C. An admin UI | Signed-in editors write rows in the app. | A new role, audit, and a privacy story [auth.md](../auth.md) already postponed. Out of cloud. |
 
 **Sources.** Public INCI or regulatory lists may be imported into option A where the license allows redistribution. The import copies rows into our tables. The running app does not call that source.
 

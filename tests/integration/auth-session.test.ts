@@ -228,7 +228,8 @@ describe("current-user-id", () => {
 describe("auth handlers route", () => {
   it("re-exports handlers from the Auth.js route module", async () => {
     const routeUrl = new URL("../../apps/web/app/api/auth/[...nextauth]/route.ts", import.meta.url);
-    const route = (await import(routeUrl.href)) as { handlers?: unknown };
-    expect(route.handlers).toBeDefined();
+    const route = (await import(routeUrl.href)) as { GET?: unknown; POST?: unknown };
+    expect(route.GET).toEqual(expect.any(Function));
+    expect(route.POST).toEqual(expect.any(Function));
   });
 });

@@ -38,6 +38,7 @@ pnpm db:seed             # demo data (with dev running)
 ```
 
 Check it worked: `http://localhost:3000/api/health` → `{"status":"ok","db":"ok"}`.
+Local Postgres and Azurite need no env file. Google sign-in does. The variable names, and who to ask for the secret values, are in [`docs/specs/environment.md`](docs/specs/environment.md).
 All commands: see `package.json` scripts, or [`CONTRIBUTING.md`](CONTRIBUTING.md) for the
 pre-push set (`pnpm test && pnpm typecheck && pnpm build`).
 

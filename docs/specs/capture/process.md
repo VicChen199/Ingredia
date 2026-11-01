@@ -115,7 +115,7 @@ A successful response is `200` with:
   parse-and-match loop works end to end before an OCR provider is chosen.
   Swapping in real OCR changes only the extractor.
 - **Processing runs once.** Only `uploaded` captures are processed, so a
-  Capture is an immutable snapshot (see [data model](../data-model.md)).
+  Capture is an immutable snapshot (see [data model](../phases/data-model.md)).
   Re-processing a `failed` Capture is not supported yet.
 - **Exact matching only.** Typo tolerance with `pg_trgm` is a later change.
 - **Synchronous.** Processing runs in the request, not on the worker queue;
