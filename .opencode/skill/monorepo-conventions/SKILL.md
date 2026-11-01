@@ -17,7 +17,7 @@ This is a pnpm + Turborepo monorepo. Code is split into apps (deployable) and pa
 - `@project/db` — Prisma schema, migrations, generated client, `applyMigrations`. Imported by all apps.
 - `@project/services` — Azure adapters (queue, storage, notify). Imported by web and worker.
 - `@project/domain` — Zod schemas and queries. Web-only.
-- `@project/auth` — `currentUserId()` dev stub; web-only today. Replaced with real auth in Week 8.
+- `@project/auth` — Google Auth.js database sessions. `currentUserId()` reads that session. Web-only. The worker has no user context in jobs.
 - `@project/log` — pino wrapper. Imported by all packages and apps.
 
 ## Rules

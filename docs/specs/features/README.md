@@ -4,4 +4,4 @@ Slice files for a track. Each file lists the slices to build and the acceptance 
 
 | Doc | What it covers |
 |---|---|
-| [google-authjs-sessions](google-authjs-sessions.md) | Slices for the identity track. Contract: [`../identity/google-authjs-sessions.md`](../identity/google-authjs-sessions.md) |
+| [google-authjs-sessions](google-authjs-sessions.md) | Implemented slices for the identity track. Current contract: [`../auth.md`](../auth.md). Route traces: [`../identity/google-authjs-sessions.md`](../identity/google-authjs-sessions.md) |

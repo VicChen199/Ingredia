@@ -1,6 +1,8 @@
 # Feature: google-authjs-sessions
 
-Source contract: `docs/specs/identity/google-authjs-sessions.md`
+**Status: implemented.** The current contract is [`docs/specs/auth.md`](../auth.md). Each slice below records what that slice built. A line that says a slice does not add Google, `/login`, or middleware is that slice's boundary. Later slices added them.
+
+Source contract for the traces: `docs/specs/identity/google-authjs-sessions.md`
 
 Architecture patched: no
 

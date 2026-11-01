@@ -65,4 +65,4 @@ Signed-out `/` runs `auth()` and shows a link to `/login`. It does not call `cur
 
 ## Key ADRs
 
-- [ADR-0003](../adr/0003-dev-identity-stub.md) — the earlier identity seam. Identity is the Google session.
+- [ADR-0012](../adr/0012-google-authjs-sessions.md) — Google Auth.js database sessions. Supersedes [ADR-0003](../adr/0003-dev-identity-stub.md).

@@ -23,10 +23,10 @@ store issue state. See [CONTRIBUTING](../../CONTRIBUTING.md) for the full arc.
 | Doc | Type | What it covers | Key ADRs |
 |---|---|---|---|
 | [monorepo](monorepo.md) | infrastructure | Apps vs packages layout, dependency rules, `@project` scope placeholder | 0001, 0009 |
-| [seams](seams.md) | infrastructure | The unifying seam pattern: local stand-in by default, real cloud via env var | 0005, 0008, 0003 |
+| [seams](seams.md) | infrastructure | The unifying seam pattern: local stand-in by default, real cloud via env var | 0005, 0008, 0012 |
 | [storage](storage.md) | infrastructure | Local-vs-real Azure pattern across blob and queue | 0006, 0008, 0005 |
-| [web](web.md) | infrastructure | Health endpoint, async-honesty UI standard, server entry ritual + error shape (404-not-403) | 0003, 0009 |
-| [auth](auth.md) | infrastructure | Identity derivation from the Google Auth.js session | 0003 |
+| [web](web.md) | infrastructure | Health endpoint, async-honesty UI standard, server entry ritual + error shape (404-not-403) | 0012, 0009 |
+| [auth](auth.md) | infrastructure | Identity derivation from the Google Auth.js session | 0012 |
 | [deploy](deploy.md) | infrastructure | Container build + Azure topology, config via env only, kill-switches | 0008 |
 | [observability](observability.md) | infrastructure | Structured logs, request IDs, what gets measured | — |
 | [environment](environment.md) | infrastructure | `.env` shape. Secret values stay out of git | 0008, 0005 |

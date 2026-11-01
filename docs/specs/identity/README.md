@@ -1,6 +1,6 @@
 # Identity
 
-The Google Auth.js session contract for this track. Slice execution lives in [`../features/google-authjs-sessions.md`](../features/google-authjs-sessions.md). The working plan lives in [`../plans/google-authjs-sessions.md`](../plans/google-authjs-sessions.md). The evergreen identity spec is [`../auth.md`](../auth.md).
+The Google Auth.js session is implemented. The evergreen contract is [`../auth.md`](../auth.md). Route traces live in [`google-authjs-sessions.md`](google-authjs-sessions.md). The slice log lives in [`../features/google-authjs-sessions.md`](../features/google-authjs-sessions.md). The plan that produced the work lives in [`../plans/google-authjs-sessions.md`](../plans/google-authjs-sessions.md).
 
 | Doc | What it covers |
 |---|---|

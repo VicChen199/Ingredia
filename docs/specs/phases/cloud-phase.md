@@ -12,43 +12,41 @@ Add-ons extend the camera loop. They do not replace Auth.js, Azure, Prisma, or t
 | Decision | Where it lives |
 |---|---|
 | Postgres + Prisma, one schema, additive migrations | [ADR-0004](../../adr/0004-prisma-orm.md) |
-| `currentUserId()`; the dev stub throws in production | [ADR-0003](../../adr/0003-dev-identity-stub.md), [auth.md](../auth.md) |
-| Auth.js database sessions. Google is `provider = "google"`. `Account` is unique on `(provider, providerAccountId)`. No `password`. No `google_id` on `User`. Unlink deletes `Account` only. | [development-phases.md](./development-phases.md), [data-model.md](./data-model.md) |
-| Azure Postgres and Azure Blob. The row stores `blob_name`, never a URL. Local bytes stay on Azurite. | [deploy.md](../deploy.md), [storage.md](../storage.md), [ADR-0006](../../adr/0006-blob-storage.md), [ADR-0008](../../adr/0008-azurite-seam.md) |
-| `Evidence` and `RegulatoryStatus`. The profile stays the short blurb. US vs EU is two regulatory rows. | [data-model.md](./data-model.md) |
+| `currentUserId()` reads the Google Auth.js database session | [auth.md](../auth.md), [ADR-0012](../../adr/0012-google-authjs-sessions.md) |
+| Auth.js database sessions. Google is `provider = "google"`. `Account` is unique on `(provider, providerAccountId)`. No `password`. No `google_id` on `User`. Unlink deletes `Account` only. Implemented. | [auth.md](../auth.md), [data-model.md](./data-model.md) |
+| Future. Azure Postgres and Azure Blob. The row stores `blob_name`, never a URL. Local bytes stay on Azurite until then. | [deploy.md](../deploy.md), [storage.md](../storage.md), [ADR-0006](../../adr/0006-blob-storage.md), [ADR-0008](../../adr/0008-azurite-seam.md) |
+| Future. `Evidence` and `RegulatoryStatus`. The profile stays the short blurb. US vs EU is two regulatory rows. | [data-model.md](./data-model.md) |
 | Encyclopedia `INSERT`s stay out of migrations. | [development-phases.md](./development-phases.md) |
 | Matching is `IngredientAlias.normalized` plus `pg_trgm`. Aliases are unique per ingredient. | [data-model.md](./data-model.md) |
 | Favorite points at a Capture. No Product, listing, or visit tables in cloud. | [development-phases.md](./development-phases.md) |
 | Domain queries stay in `packages/domain`, imported by the web app. | [ADR-0009](../../adr/0009-domain-web-only.md) |
 
-That is the template leftover. The identity track updates it to Google. The provider is not an open choice.
+Google is the provider. That choice is closed.
 
 ## Four tracks
 
-Four engineers build the kept cloud phase at the same time. Each track has its own files.
+Identity is implemented. Hosting, encyclopedia schema, and catalog depth are future.
 
-| Track | Owns | Does not edit | Adds |
-|---|---|---|---|
-| Identity | `packages/auth`, `/login`, `/api/auth/*`, `docs/specs/auth.md` | Capture matching, catalog files, deploy workflows | Auth.js `Account`, `Session`, `VerificationToken` |
-| Hosting | Deploy workflow, host secrets, `DATABASE_URL`, `AZURE_STORAGE_CONNECTION_STRING` | `schema.prisma`, domain packages, catalog files | Azure Postgres, Azure Blob, Container Apps |
-| Encyclopedia schema | `Evidence`, `RegulatoryStatus`, those fields on capture read | Auth, catalog content files, deploy workflows | The cloud tables in the data model |
-| Catalog | `apps/migrate/src/catalog/`, loaded from `apps/migrate/src/seed.ts` | `schema.prisma`, `packages/auth`, deploy workflows | Rows for the tables that already exist, then evidence and regulatory rows |
+| Track | Status | Owns | Does not edit | Adds |
+|---|---|---|---|---|
+| Identity | Implemented | `packages/auth`, `/login`, `/api/auth/*`, `docs/specs/auth.md` | Capture matching, catalog files, deploy workflows | Auth.js `Account`, `Session`, `VerificationToken` |
+| Hosting | Future | Deploy workflow, host secrets, `DATABASE_URL`, `AZURE_STORAGE_CONNECTION_STRING` | `schema.prisma`, domain packages, catalog files | Azure Postgres, Azure Blob, Container Apps |
+| Encyclopedia schema | Future | `Evidence`, `RegulatoryStatus`, those fields on capture read | Auth, catalog content files, deploy workflows | The cloud tables in the data model |
+| Catalog | Future | `apps/migrate/src/catalog/`, loaded from `apps/migrate/src/seed.ts` | `schema.prisma`, `packages/auth`, deploy workflows | Rows for the tables that already exist, then evidence and regulatory rows |
 
-Identity and Encyclopedia schema are the only tracks that edit `schema.prisma`. Each ships its own migration folder and only its own models. Neither edits the other’s migration.
-
-The dev stub throws in production, so a public URL waits until Identity has merged. Hosting can prove `migrate deploy`, `/api/health`, and a blob round-trip on current main before that. Catalog can load ingredients, aliases, profiles, and flags today. Evidence and regulatory rows load once Encyclopedia schema has merged.
+`Account`, `Session`, and `VerificationToken` are already in `0002_auth.sql`. Encyclopedia schema is the remaining track that edits `schema.prisma`. It ships its own migration and only its own models. Hosting can prove `migrate deploy`, `/api/health`, and a blob round-trip without new product tables. The seed already loads the demo ingredients, aliases, profiles, and flags. Evidence and regulatory rows load once encyclopedia schema exists.
 
 ### Identity
 
-**Goal.** The session is the only identity. Google creates or links a `User`.
+**Implemented.** The session is the only identity. The contract is [auth.md](../auth.md).
 
-Callers keep `const userId = await currentUserId()`. Tests that mock `@project/auth` keep mocking that function. Public routes are the landing page, `/login`, `/api/health`, and `/api/auth/*`. Other API calls without a session return 401. Pages redirect to `/login`. The `x-user-id` header and `ALLOW_DEV_IDENTITY` leave the codebase, including dev.
+Callers keep `const userId = await currentUserId()`. Tests that mock `@project/auth` keep mocking that function. Public routes are `/`, `/login`, `/api/health`, and `/api/auth/*`. Other API calls without a session cookie return 401. Other pages without a session cookie redirect to `/login`. `x-user-id`, `DEV_USER_ID`, and `ALLOW_DEV_IDENTITY` are gone.
 
-**Done when.** On localhost, two Google accounts each see only their own captures and favorites. Unlinking Google leaves the user and their captures.
+Google sign-in creates or loads a `User`. Unlink deletes the Google `Account` and leaves the user, the session, and their captures. The verify drills are in [auth.md](../auth.md).
 
 ### Hosting
 
-**Goal.** The same camera app survives a restart on Azure. This track applies [deploy.md](../deploy.md) and [seams.md](../seams.md). It does not add product behavior.
+**Future.** The same camera app survives a restart on Azure. This track applies [deploy.md](../deploy.md) and [seams.md](../seams.md). It does not add product behavior.
 
 Image build in CI, a new Container Apps revision at 0% traffic, smoke `GET /api/health` with `db: "ok"`, then promote. Secrets live on the host. `.env.example` lists every variable. Google redirect URIs for the live origin are recorded here and used by Identity’s client config.
 
@@ -56,7 +54,7 @@ Image build in CI, a new Container Apps revision at 0% traffic, smoke `GET /api/
 
 ### Encyclopedia schema
 
-**Goal.** Citations and jurisdiction have the tables the data model already names. `IngredientProfile` stays the blurb.
+**Future.** Citations and jurisdiction have the tables the data model already names. `IngredientProfile` stays the blurb. Those tables are not in the current schema.
 
 - `Evidence`: `ingredient_id`, `summary`, `source_url`, `published_on`, `claim_type` (`safety` | `function` | `controversy`).
 - `RegulatoryStatus`: `ingredient_id`, `jurisdiction` (`US` | `EU` | `CA` | …), `status_text`, `as_of_date`.
@@ -67,17 +65,17 @@ Capture read grows additive fields for those rows. Matching and favorites stay a
 
 ### Catalog
 
-**Goal.** A real label matches. This is the production risk, not the VM.
+**Future.** A real label matches. This is the production risk, not the VM.
 
-Catalog files under `apps/migrate/src/catalog/` are loaded with re-runnable upserts. The stub `User` block in `apps/migrate/src/seed.ts` stays until Identity replaces sign-in. The demo gluten / fragrance / comedogenic rows may move into the catalog files.
+Catalog files under `apps/migrate/src/catalog/` do not exist yet. When this track is built, the seed loads them with re-runnable upserts. The seed creates no user. The demo gluten, fragrance, and comedogenic rows stay in `apps/migrate/src/seed.ts` until they move into those catalog files.
 
 **Done when.** Seeding loads the catalog. A real label, not the sample text in the process stub, matches multiple lines and a preference flag fires. Seeded ingredients have a real blurb, at least one evidence row, and separate US and EU rows where both apply.
 
-**Done when, all four.** Sign in with Google, upload a label, data survives restart on Azure, user A cannot see user B, and ingredient pages are more than the demo seed.
+**Done when, the three future tracks.** An upload survives restart on Azure, user A cannot see user B (already true for the session), and ingredient pages are more than the demo seed. Sign in with Google is already done.
 
 ## Add-on features
 
-These are new behavior on the system above. The base tables, auth product, and host stay. A choice inside an add-on is accepted by updating that add-on’s spec (`capture/process.md` or the catalog notes in this file). It does not need a new auth or hosting vendor.
+**Future.** These are not implemented. They are new behavior on the system above. The base tables and the auth product stay. A choice inside an add-on is accepted by updating that add-on’s spec (`capture/process.md` or the catalog notes in this file). It does not need a new auth or hosting vendor.
 
 ### Read the label
 

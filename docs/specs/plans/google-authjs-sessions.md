@@ -1,14 +1,16 @@
 # Google Auth.js sessions
 
-Replace the dev identity stub with Auth.js v5 database sessions and Google sign-in inside the Next app.
+**Status: implemented.** The current contract is [`docs/specs/auth.md`](../auth.md). This file is the plan that produced that work. Its file lists and "do not edit" lines were the boundary of that session, not the current documentation rule.
 
-Email magic link is not in this branch. No second provider, no mailer, and `allowDangerousEmailAccountLinking` is never set. `VerificationToken` is still created because the Auth.js Prisma adapter schema includes it; Google sign-in does not write a row there. The Google-only lines in the phase docs stay as they are.
+**Still future:** live Google redirect URIs and Container Apps copies of `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and `AUTH_SECRET`. Those stay on the hosting track.
 
-Work lands on `cloud/identity`.
+The work replaced the dev identity stub with Auth.js v5 database sessions and Google sign-in inside the Next app.
+
+Email magic link is not in this work. No second provider, no mailer, and `allowDangerousEmailAccountLinking` is unset. `VerificationToken` exists because the Auth.js Prisma adapter schema includes it; Google sign-in does not write a row there.
 
 ## Behavior
 
-`currentUserId()` calls Auth.js `auth()`, reads the database `Session`, and returns `session.user.id`. No session throws, so existing route `catch` blocks still return `401` `{ error: { code: "unauthorized", message: "A signed-in user is required" } }`. Call sites stay `const userId = await currentUserId()`. Integration tests keep mocking `@project/auth`.
+`currentUserId()` calls Auth.js `auth()`, reads the database `Session`, and returns `session.user.id`. No session throws. The cookie gate and `DELETE /api/account/google` return `401` `{ error: { code: "unauthorized", message: "A signed-in user is required" } }`. The upload and process handlers catch the same throw and return `401` `UNAUTHENTICATED`. Call sites stay `const userId = await currentUserId()`. Integration tests keep mocking `@project/auth`.
 
 First Google sign-in inserts `User` (name, email, image from the profile) and `Account` with `provider = "google"` and Google’s account id as `providerAccountId`. The next sign-in with that pair loads the same user. A different Google account creates a different user. Same email does not merge accounts.
 

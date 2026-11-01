@@ -14,7 +14,7 @@ A person keeps a capture they want to come back to. Favoriting pins that capture
 `:id` is `Capture.id`. Favorite has no id column.
 
 ## Behavior
-Identity comes from `currentUserId()` ([ADR-0003](../../adr/0003-dev-identity-stub.md)). The client sends no body and no user id. The server sets `Favorite.userId` from that identity and `Favorite.captureId` from `:id`.
+Identity comes from `currentUserId()` ([auth](../auth.md)). The client sends no body and no user id. The server sets `Favorite.userId` from that identity and `Favorite.captureId` from `:id`.
 
 Every query is scoped by that user id. A missing `User` row is 401 `{ error: { code: "unauthorized", message: "User not found" } }`.
 

@@ -44,8 +44,8 @@ production behavior diverge, controlled by configuration, not code branches.
 
 - [ADR-0005](../adr/0005-pglite-tests.md) — PGlite as the test-database seam.
 - [ADR-0008](../adr/0008-azurite-seam.md) — Azurite as the blob/queue seam.
-- [ADR-0003](../adr/0003-dev-identity-stub.md) — identity is the Google
-  session locally and in production.
+- [ADR-0012](../adr/0012-google-authjs-sessions.md) — identity is the Google
+  session locally and in production. Supersedes ADR-0003.
 
 ## Adding a new seam
 

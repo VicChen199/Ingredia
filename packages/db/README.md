@@ -4,8 +4,11 @@ The database seam. Owns the Prisma schema, the generated client, the migration
 files, and the `applyMigrations` helper. Every app and most other packages
 import from here.
 
-The POC schema (user, catalog, capture, favorite) lives in `prisma/schema.prisma`.
-The first migration is the flat file `prisma/migrations/0001_init.sql`.
+The schema in `prisma/schema.prisma` holds the camera tables (user, catalog,
+capture, favorite) and the Auth.js tables (`Account`, `Session`,
+`VerificationToken`). Migrations apply in order: `prisma/migrations/0001_init.sql`,
+then `prisma/migrations/0002_auth.sql`. Evidence, RegulatoryStatus, and stretch
+tables are future.
 
 ## Public API
 

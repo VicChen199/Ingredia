@@ -1,5 +1,7 @@
 # Identity — Google Auth.js sessions
 
+Implemented. The evergreen summary is [`../auth.md`](../auth.md). The route traces below match that contract. Hosting secrets, encyclopedia tables, catalog files, and OCR are future.
+
 ## Assumptions
 
 - This contract is the identity track only. The label-text stub and the git-reviewed catalog stay outside it.
@@ -29,7 +31,9 @@ One feature, slug `google-authjs-sessions`. A signed-in person is the Google dat
 
 ### Out of scope
 
-Hosting, encyclopedia schema, catalog files, Evidence, RegulatoryStatus, OCR, and any change to capture, favorite, preference, or health handlers. Do not edit `docs/adr/0003-dev-identity-stub.md`, `docs/specs/phases/development-phases.md`, `docs/specs/phases/data-model.md`, or `docs/specs/capture/favorites.md`. No second provider, no email magic link, no `password`, no `google_id`, and `allowDangerousEmailAccountLinking` stays unset. Live redirect URIs and Container Apps copies of the secrets stay on the hosting track.
+No second provider, no email magic link, no `password`, no `google_id`, and `allowDangerousEmailAccountLinking` stays unset. Capture, favorite, preference, and health handlers were not part of this feature.
+
+**Future.** Live redirect URIs and Container Apps copies of `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and `AUTH_SECRET` stay on the hosting track. Encyclopedia schema, catalog files, `Evidence`, `RegulatoryStatus`, and OCR stay outside identity.
 
 Existing tests stay green and keep mocking `@project/auth`: `tests/integration/capture.test.ts`, `tests/integration/capture-read.test.ts`, `tests/integration/process.test.ts`, `tests/integration/favorites.test.ts`, `tests/integration/preferences.test.ts`, `tests/integration/smoke.test.ts`.
 

@@ -1,5 +1,6 @@
-// POC data model. Cloud and stretch tables are later migrations.
-// See docs/specs/phases/data-model.md.
+// Camera tables plus Auth.js Account, Session, and VerificationToken.
+// Evidence, RegulatoryStatus, and stretch tables are future migrations.
+// See docs/specs/auth.md and docs/specs/phases/data-model.md.
 
 generator client {
   provider        = "prisma-client-js"
