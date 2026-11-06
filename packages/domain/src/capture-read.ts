@@ -14,6 +14,13 @@ export class CaptureReadError extends Error {
   }
 }
 
+// Newest first, undated last. Kept outside the `as const` select because
+// Prisma's orderBy takes a mutable array.
+const evidenceOrder = [
+  { publishedOn: { sort: "desc" as const, nulls: "last" as const } },
+  { summary: "asc" as const },
+];
+
 // Select only the fields in the public contract. Nested relations are batched
 // by Prisma, rather than queried once per item.
 const captureReadSelect = {
@@ -48,6 +55,14 @@ const captureReadSelect = {
               },
             },
           },
+          evidence: {
+            orderBy: evidenceOrder,
+            select: { claimType: true, summary: true, sourceUrl: true, publishedOn: true },
+          },
+          regulatoryStatuses: {
+            orderBy: { jurisdiction: "asc" },
+            select: { jurisdiction: true, statusText: true, asOfDate: true },
+          },
         },
       },
     },
@@ -64,6 +79,11 @@ async function findCaptureRows(userId: string) {
 
 type CaptureReadRow = Awaited<ReturnType<typeof findCaptureRows>>[number];
 
+// DATE columns arrive as UTC midnight; the contract is a calendar date.
+function toCalendarDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 function toCaptureView(row: CaptureReadRow, enabledFlags: Set<string>) {
   return {
     ...row,
@@ -77,6 +97,14 @@ function toCaptureView(row: CaptureReadRow, enabledFlags: Set<string>) {
           ...flag,
           productCategory,
           enabledByUser: enabledFlags.has(flag.id),
+        })),
+        evidence: ingredient.evidence.map(({ publishedOn, ...evidence }) => ({
+          ...evidence,
+          publishedOn: publishedOn === null ? null : toCalendarDate(publishedOn),
+        })),
+        regulatoryStatuses: ingredient.regulatoryStatuses.map(({ asOfDate, ...status }) => ({
+          ...status,
+          asOfDate: toCalendarDate(asOfDate),
         })),
       },
     })),

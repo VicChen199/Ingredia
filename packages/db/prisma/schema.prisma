@@ -1,4 +1,5 @@
-// POC data model. Cloud and stretch tables are later migrations.
+// POC data model plus the cloud encyclopedia tables. Stretch tables are later
+// migrations.
 // See docs/specs/data-model.md.
 
 generator client {
@@ -48,6 +49,12 @@ enum MatchStatus {
   ambiguous
 }
 
+enum ClaimType {
+  safety
+  function
+  controversy
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -91,6 +98,9 @@ model Ingredient {
   profile IngredientProfile?
   flags   IngredientFlag[]
   items   CaptureItem[]
+
+  evidence           Evidence[]
+  regulatoryStatuses RegulatoryStatus[]
 }
 
 model IngredientAlias {
@@ -122,6 +132,33 @@ model IngredientFlag {
   flag       PreferenceFlag @relation(fields: [flagId], references: [id], onDelete: Restrict)
 
   @@id([ingredientId, flagId])
+}
+
+// Non-empty text and the jurisdiction format are CHECK constraints in
+// 0003_encyclopedia.sql. See docs/specs/encyclopedia/evidence-and-regulatory.md.
+model Evidence {
+  id           String    @id @default(cuid())
+  ingredientId String    @map("ingredient_id")
+  claimType    ClaimType @map("claim_type")
+  summary      String
+  sourceUrl    String    @map("source_url")
+  publishedOn  DateTime? @map("published_on") @db.Date
+
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@index([ingredientId])
+}
+
+model RegulatoryStatus {
+  id           String   @id @default(cuid())
+  ingredientId String   @map("ingredient_id")
+  jurisdiction String
+  statusText   String   @map("status_text")
+  asOfDate     DateTime @map("as_of_date") @db.Date
+
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([ingredientId, jurisdiction])
 }
 
 model Capture {

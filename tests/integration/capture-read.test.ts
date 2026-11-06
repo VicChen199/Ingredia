@@ -59,6 +59,14 @@ async function enrichedFixture() {
       { flagId: "flag-z", productCategory: null },
       { flagId: "flag-g", productCategory: "food" },
     ] },
+    evidence: { create: [
+      { claimType: "function", summary: "Undated binder note.", sourceUrl: "https://example.org/binder", publishedOn: null },
+      { claimType: "safety", summary: "Gluten triggers coeliac disease.", sourceUrl: "https://example.org/gluten", publishedOn: new Date("2024-05-01") },
+    ] },
+    regulatoryStatuses: { create: [
+      { jurisdiction: "US", statusText: "Major allergen source.", asOfDate: new Date("2025-01-15") },
+      { jurisdiction: "EU", statusText: "Allergen; emphasised on labels.", asOfDate: new Date("2025-02-01") },
+    ] },
   } });
   await prisma.ingredient.create({ data: { id: "bare", slug: "bare", displayName: "Bare" } });
   await prisma.userPreference.createMany({ data: [
@@ -119,11 +127,20 @@ describe("capture reads", () => {
             { id: "flag-g", code: "gluten", label: "Gluten", categoryScope: "food", productCategory: "food", enabledByUser: true },
             { id: "flag-z", code: "zeta", label: "Zeta", categoryScope: null, productCategory: null, enabledByUser: false },
           ],
+          evidence: [
+            { claimType: "safety", summary: "Gluten triggers coeliac disease.", sourceUrl: "https://example.org/gluten", publishedOn: "2024-05-01" },
+            { claimType: "function", summary: "Undated binder note.", sourceUrl: "https://example.org/binder", publishedOn: null },
+          ],
+          regulatoryStatuses: [
+            { jurisdiction: "EU", statusText: "Allergen; emphasised on labels.", asOfDate: "2025-02-01" },
+            { jurisdiction: "US", statusText: "Major allergen source.", asOfDate: "2025-01-15" },
+          ],
         } },
         { sortOrder: 1, rawToken: "mystery", ingredientId: null, matchStatus: "unknown", ingredient: null },
         { sortOrder: 2, rawToken: "collision", ingredientId: null, matchStatus: "ambiguous", ingredient: null },
         { sortOrder: 3, rawToken: "Bare", ingredientId: "bare", matchStatus: "matched", ingredient: {
           id: "bare", slug: "bare", displayName: "Bare", profile: null, flags: [],
+          evidence: [], regulatoryStatuses: [],
         } },
       ],
     });
@@ -180,6 +197,47 @@ describe("capture reads", () => {
     expect(await snapshot()).toEqual(afterPreferenceChange);
     expect(afterPreferenceChange.captures).toEqual(before.captures);
     expect(afterPreferenceChange.items).toEqual(before.items);
+  });
+
+  it("orders evidence newest first, undated last, ties by summary", async () => {
+    await enrichedFixture();
+    await prisma.evidence.createMany({ data: [
+      { ingredientId: "wheat", claimType: "controversy", summary: "A later note.", sourceUrl: "https://example.org/a", publishedOn: new Date("2024-05-01") },
+      { ingredientId: "wheat", claimType: "safety", summary: "Newest study.", sourceUrl: "https://example.org/b", publishedOn: new Date("2025-03-09") },
+    ] });
+    const view = await (await readDetail("cap-1")).json();
+    expect(view.items[0].ingredient.evidence.map((row: { summary: string }) => row.summary)).toEqual([
+      "Newest study.", "A later note.", "Gluten triggers coeliac disease.", "Undated binder note.",
+    ]);
+  });
+
+  it("enforces the encyclopedia constraints in the database", async () => {
+    await enrichedFixture();
+    const status = { ingredientId: "wheat", statusText: "Allowed.", asOfDate: new Date("2025-01-15") };
+    await expect(prisma.regulatoryStatus.create({ data: { ...status, jurisdiction: "US" } })).rejects.toThrow();
+    await expect(prisma.regulatoryStatus.create({ data: { ...status, jurisdiction: "us" } })).rejects.toThrow();
+    await expect(prisma.regulatoryStatus.create({ data: { ...status, jurisdiction: "CA", statusText: "  " } })).rejects.toThrow();
+    await expect(prisma.$executeRawUnsafe(
+      `INSERT INTO "Evidence" (id, ingredient_id, claim_type, summary, source_url) VALUES ('e', 'wheat', 'marketing', 'x', 'https://example.org')`,
+    )).rejects.toThrow();
+    await expect(prisma.evidence.create({ data: {
+      ingredientId: "wheat", claimType: "safety", summary: "", sourceUrl: "https://example.org",
+    } })).rejects.toThrow();
+    await prisma.regulatoryStatus.create({ data: { ...status, jurisdiction: "CA" } });
+    expect(await prisma.regulatoryStatus.count({ where: { ingredientId: "wheat" } })).toBe(3);
+  });
+
+  it("keeps encyclopedia rows of a scanned ingredient and cascades them from an unscanned one", async () => {
+    await enrichedFixture();
+    await prisma.evidence.create({ data: { ingredientId: "bare", claimType: "function", summary: "Filler.", sourceUrl: "https://example.org/bare" } });
+    await prisma.regulatoryStatus.create({ data: { ingredientId: "bare", jurisdiction: "US", statusText: "Allowed.", asOfDate: new Date("2025-01-15") } });
+    await expect(prisma.ingredient.delete({ where: { id: "wheat" } })).rejects.toThrow();
+    expect(await prisma.evidence.count({ where: { ingredientId: "wheat" } })).toBe(2);
+    expect(await prisma.regulatoryStatus.count({ where: { ingredientId: "wheat" } })).toBe(2);
+    await prisma.captureItem.delete({ where: { captureId_sortOrder: { captureId: "cap-1", sortOrder: 3 } } });
+    await prisma.ingredient.delete({ where: { id: "bare" } });
+    expect(await prisma.evidence.count({ where: { ingredientId: "bare" } })).toBe(0);
+    expect(await prisma.regulatoryStatus.count({ where: { ingredientId: "bare" } })).toBe(0);
   });
 
   it("sanitizes unexpected database failures on both endpoints", async () => {
