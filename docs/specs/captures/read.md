@@ -16,7 +16,7 @@ Identity comes from `currentUserId()`. No client-supplied user id is used. Both 
 
 The list returns 200 and `CaptureView[]`, ordered by createdAt descending then id ascending; an empty list is `[]`. Detail returns 200 and one `CaptureView`. All capture statuses are readable. Items are ordered by sortOrder ascending. Reads never change database rows or process labels.
 
-`CaptureView` contains id, source, status, nullable blobName and rawText, ISO createdAt and updatedAt, and items. Each item contains sortOrder, rawToken, nullable ingredientId, matchStatus, and nullable ingredient. A linked ingredient contains id, slug, displayName, nullable profile, and flags. Profile contains originSummary, manufacturerUse, and summary. Flags contain id, code, label, nullable categoryScope and productCategory, and enabledByUser, ordered by code. All flags are returned; enabledByUser reflects current UserPreference rows, not a category-applicability judgment. Unknown and ambiguous items retain their raw tokens with ingredient null when unlinked. Missing profiles remain null and missing items or flags are empty arrays.
+`CaptureView` contains id, source, status, nullable blobName and rawText, ISO createdAt and updatedAt, and items. Each item contains sortOrder, rawToken, nullable ingredientId, matchStatus, and nullable ingredient. A linked ingredient contains id, slug, displayName, nullable profile, flags, evidence, and regulatoryStatuses. Profile contains originSummary, manufacturerUse, and summary. Evidence and regulatoryStatuses, their fields, order, and date format are defined in [evidence and regulatory status](../encyclopedia/evidence-and-regulatory.md); each is an empty array when the ingredient has none. Flags contain id, code, label, nullable categoryScope and productCategory, and enabledByUser, ordered by code. All flags are returned; enabledByUser reflects current UserPreference rows, not a category-applicability judgment. Unknown and ambiguous items retain their raw tokens with ingredient null when unlinked. Missing profiles remain null and missing items or flags are empty arrays.
 
 Missing/empty identity or a missing User row returns 401 `unauthorized` / `A signed-in user is required`. Detail ids use a shared nonempty-string Zod schema, without requiring CUID format. Invalid ids return 400 `validation_error` / `Invalid capture id`. Foreign and unknown captures return identical 404 `not_found` / `Capture not found`. Unexpected errors return 500 `internal` / `Internal error`. All errors use `{ error: { code, message } }`; no raw errors reach clients.
 
@@ -43,7 +43,12 @@ Example detail (the list contains objects of the same shape):
     "ingredient": {
       "id": "ing-wheat", "slug": "wheat", "displayName": "Wheat",
       "profile": { "originSummary": "plant", "manufacturerUse": "Binder", "summary": "Contains gluten." },
-      "flags": [{ "id": "flag-gluten", "code": "gluten", "label": "Gluten", "categoryScope": "food", "productCategory": "food", "enabledByUser": true }]
+      "flags": [{ "id": "flag-gluten", "code": "gluten", "label": "Gluten", "categoryScope": "food", "productCategory": "food", "enabledByUser": true }],
+      "evidence": [{ "claimType": "safety", "summary": "Gluten triggers coeliac disease.", "sourceUrl": "https://example.org/gluten", "publishedOn": "2024-05-01" }],
+      "regulatoryStatuses": [
+        { "jurisdiction": "EU", "statusText": "Allergen; must be emphasised on labels.", "asOfDate": "2025-01-15" },
+        { "jurisdiction": "US", "statusText": "Major allergen source; labelling required.", "asOfDate": "2025-01-15" }
+      ]
     }
   }]
 }
