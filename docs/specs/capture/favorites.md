@@ -14,7 +14,7 @@ A person keeps a capture they want to come back to. Favoriting pins that capture
 `:id` is `Capture.id`. Favorite has no id column.
 
 ## Behavior
-Identity comes from `currentUserId()` ([ADR-0003](../../adr/0003-dev-identity-stub.md)). The client sends no body and no user id. The server sets `Favorite.userId` from that identity and `Favorite.captureId` from `:id`.
+Identity comes from `currentUserId()` ([auth](../auth.md)). The client sends no body and no user id. The server sets `Favorite.userId` from that identity and `Favorite.captureId` from `:id`.
 
 Every query is scoped by that user id. A missing `User` row is 401 `{ error: { code: "unauthorized", message: "User not found" } }`.
 
@@ -75,7 +75,7 @@ There is no cached page. These handlers do not call `revalidatePath`.
 No curl drill: these routes are confirmed by calling the handlers in the integration suite. A favorites page does not exist yet.
 
 ## Constraints & decisions
-- A Favorite row is only `(userId, captureId)`. It points at a Capture that same user owns. The schema enforces that with `Capture @@unique([id, userId])` and the Favorite relation on `[captureId, userId]`. See [data-model.md](../data-model.md).
+- A Favorite row is only `(userId, captureId)`. It points at a Capture that same user owns. The schema enforces that with `Capture @@unique([id, userId])` and the Favorite relation on `[captureId, userId]`. See [data-model.md](../phases/data-model.md).
 - Create and delete do not insert, update, or delete Capture, CaptureItem, or blob bytes. Unfavorite deletes the Favorite row only.
 - The ownership read on create happens before insert, so a foreign capture and a missing capture share one 404 body. Delete does not look up the capture, so every miss shares `Favorite not found` and does not reveal whether the capture exists.
 - Duplicate create is 409 because the primary key rejects the second row (`P2002`). The list orders by when the capture was created. Favorite has no timestamp of its own.
@@ -84,6 +84,6 @@ No curl drill: these routes are confirmed by calling the handlers in the integra
 
 ## Out of scope
 - Creating or reading captures. Those routes do not exist yet.
-- A favorites page. The POC journey in [development-phases.md](../development-phases.md) still expects `Favorite → Capture → CaptureItem` on a page; this spec is the API only.
-- OCR, alias matching, and preference flags. Those are later POC steps in [development-phases.md](../development-phases.md).
-- Extension save that materializes a Capture before inserting Favorite. That is stretch behavior in [data-model.md](../data-model.md).
+- A favorites page. The POC journey in [development-phases.md](../phases/development-phases.md) still expects `Favorite → Capture → CaptureItem` on a page; this spec is the API only.
+- OCR, alias matching, and preference flags. Those are later POC steps in [development-phases.md](../phases/development-phases.md).
+- Extension save that materializes a Capture before inserting Favorite. That is stretch behavior in [data-model.md](../phases/data-model.md).

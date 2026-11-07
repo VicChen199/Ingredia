@@ -1,4 +1,4 @@
-// Seed script: stub user plus a demo catalog for gluten, fragrance, and comedogenic.
+// Seed script: demo catalog for gluten, fragrance, and comedogenic.
 // Safe to re-run. Run via: pnpm db:seed
 
 import { prisma } from "@project/db";
@@ -71,12 +71,6 @@ const ingredients = [
 ];
 
 async function main() {
-  await prisma.user.upsert({
-    where: { id: "demo-user" },
-    update: {},
-    create: { id: "demo-user", name: "Demo", email: "demo@localhost" },
-  });
-
   for (const flag of flags) {
     await prisma.preferenceFlag.upsert({
       where: { id: flag.id },

@@ -15,25 +15,25 @@ How the cloud phase is built, and the add-on features that sit on these decision
 
 Camera + matching first. Make that app real in the cloud second. Browser extension last, as a second client of the same API.
 
-Cloud is not a new product. It is the same Capture loop with real identity, real storage, and a real ingredient catalog.
+Cloud is not a new product. It is the same Capture loop with real identity, real storage, and a real ingredient catalog. Google sign-in is implemented. Azure hosting and a production catalog are future.
 
 Hosting and the extension are not the same gate. Stretch tables and content scripts can run against localhost + Azurite. Cloud is when the **camera** product is shareable, not when extension work may start.
 
 ```mermaid
 flowchart LR
   subgraph poc [POC local]
+    GoogleAuth --> Camera
     Camera --> Capture
     Capture --> CaptureItem
     CaptureItem --> AliasMatch
     AliasMatch --> Flags
     Capture --> Favorite
   end
-  subgraph cloud [Cloud]
-    GoogleAuth --> SameLoop[Same camera loop]
-    Azure[(Postgres + Blob)] --> SameLoop
+  subgraph cloud [Cloud future]
+    Azure[(Postgres + Blob)] --> SameLoop[Same camera loop]
     Seed[Catalog seeding] --> SameLoop
   end
-  subgraph stretch [Stretch]
+  subgraph stretch [Stretch future]
     Ext[Extension] --> Overlay
     Overlay --> Visit[ExtensionVisit]
     Overlay --> Known[Known listing / Product BOM]
@@ -61,12 +61,12 @@ flowchart LR
 
 | Table / concern | POC local | Cloud | Stretch |
 |---|---|---|---|
-| `User` (Auth.js-shaped, stub row) | own | keep | keep |
+| `User` (Auth.js-shaped; created by Google sign-in) | own | keep | keep |
 | `PreferenceFlag`, `UserPreference` | own | keep | keep |
 | `Ingredient`, `IngredientAlias`, `IngredientFlag`, `IngredientProfile` | own | keep | keep |
 | `Capture` (camera), `CaptureItem`, `Favorite` | own | keep | keep |
 | `blob_name` → Azurite | own | — | local dev OK |
-| Auth.js `Account` (Session / VerificationToken as infra) | no | own | keep |
+| Auth.js `Account`, `Session`, `VerificationToken` | own | keep | keep |
 | Azure Postgres + Azure Blob, HTTPS, isolation | no | own | keep |
 | Encyclopedia seed/curation beyond a demo set | tiny seed | own | keep |
 | `Evidence`, `RegulatoryStatus` | no | own | keep |
@@ -76,17 +76,17 @@ flowchart LR
 | Capture `page_url`, `retailer_id`, `product_id`; `source = extension` | no | no | own |
 | Chrome extension / Web Store | no | no | own |
 
-POC must not create unused listing/visit tables “so we don’t migrate later.” Cloud and stretch still need migrations (Auth.js, evidence, Capture columns, listings).
+POC must not create unused listing/visit tables “so we don’t migrate later.” Auth.js tables are already in `0002_auth.sql`. Cloud and stretch still need future migrations (evidence, Capture columns, listings).
 
 ---
 
 ## POC local — prove the camera loop
 
-**Goal.** One person, on their machine, can go photo → text → matched ingredients → preference badges → favorite, without Google, Azure, or Chrome.
+**Goal.** One person, on their machine, can go photo → text → matched ingredients → preference badges → favorite. Identity is Google sign-in, including on localhost. Azure hosting and Chrome are future.
 
 **Runtime.** Local Postgres + Azurite. Database stores `blob_name` (for example `<captureId>/<filename>`), never a URL.
 
-**Auth.** One stub `User` row. No `Account`, no passwords, no Google client IDs. Keep `User` Auth.js-compatible (`id`, `name`, `email` unique nullable, `emailVerified`, `image`, timestamps) so cloud can add `Account` instead of replacing `User`.
+**Auth.** Implemented. The Google Auth.js database session in [auth.md](../auth.md). `currentUserId()` reads that session. `Account`, `Session`, and `VerificationToken` are in the schema (`0002_auth.sql`). The seed does not create a user. No passwords. No `google_id`.
 
 ### User journey
 
@@ -113,14 +113,13 @@ A handful of ingredients, aliases, flags, and profiles — enough to demo gluten
 
 ### Explicitly not in POC
 
-- Google / Auth.js `Account` (and Session / VerificationToken)
 - `Brand`, `Product`, `ProductIngredient`, `Retailer`, `ProductListing`
 - `ExtensionVisit`
 - `Evidence`, `RegulatoryStatus`
 - Extension `source`, overlay debounce, freeze-on-save from a BOM
 - Browser `localStorage` as the system of record
 
-**Done when.** A local demo: stub user, image or pasted text, some lines matched, a flag fires, favorite appears via `Favorite → Capture → CaptureItem`.
+**Done when.** A local demo: sign in with Google, image or pasted text, some lines matched, a flag fires, favorite appears via `Favorite → Capture → CaptureItem`.
 
 ---
 
@@ -132,11 +131,11 @@ The four build tracks and the add-on features (real OCR, catalog curation) are i
 
 ### What this phase owns
 
-- **Identity.** Auth.js-style Google OAuth. `Account` is unique on `(provider, providerAccountId)`; Google is `provider = "google"`. Session and VerificationToken are infra, not domain. No `password` column. No `google_id` on `User`.
-- **Storage.** Azure Postgres and Azure Blob. Keep `blob_name` as identity; swap the blob backend. CORS, HTTPS, and credentials replace Azurite’s open local emulator.
-- **Isolation.** Enforce `WHERE user_id = currentUser` on private tables. Two users scanning the same bottle still get two Captures.
-- **Catalog.** Seeding/curation so the encyclopedia is not five demo rows. This is the real production risk, not the VM.
-- **Encyclopedia depth.** `Evidence` and `RegulatoryStatus`. `IngredientProfile` stays the short blurb; jurisdiction-specific law does not live on the profile. US vs EU is two `RegulatoryStatus` rows.
+- **Identity.** Implemented. See [auth.md](../auth.md). `Account` is unique on `(provider, providerAccountId)`; Google is `provider = "google"`. Session and VerificationToken are infra, not domain. No `password` column. No `google_id` on `User`.
+- **Isolation.** Implemented with that session. Private queries filter `WHERE user_id = currentUser`. Two users scanning the same bottle still get two Captures.
+- **Storage.** Future. Azure Postgres and Azure Blob. Keep `blob_name` as identity; swap the blob backend. CORS, HTTPS, and credentials replace Azurite’s open local emulator.
+- **Catalog.** Future. Seeding/curation so the encyclopedia is not the demo rows. This is the real production risk, not the VM.
+- **Encyclopedia depth.** Future. `Evidence` and `RegulatoryStatus`. `IngredientProfile` stays the short blurb; jurisdiction-specific law does not live on the profile. US vs EU is two `RegulatoryStatus` rows.
 - **Lifecycle.** User delete cascades private rows (and `Account`). Ingredient delete **restricts** if any `CaptureItem` references it. Blobs are not auto-deleted with the row unless a job is added. Deleting `Account` (Google unlink) must not require deleting `User` or captures.
 
 ### What does not change
@@ -146,7 +145,7 @@ The four build tracks and the add-on features (real OCR, catalog curation) are i
 - Favorite still pins a Capture, not a SKU.
 - Camera Captures still usually have no `product_id`.
 
-**Done when.** Sign in with Google, upload a label, data survives restart on Azure, user A cannot see user B’s captures or favorites, ingredient pages have more than a stub blurb.
+**Done when.** Future, except identity: sign in with Google is done, and user A cannot see user B’s captures or favorites. Still ahead: an upload survives restart on Azure, and ingredient pages have more than the demo blurb.
 
 Cloud is not done because the app deployed while the catalog is still a toy.
 

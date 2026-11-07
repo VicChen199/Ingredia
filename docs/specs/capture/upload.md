@@ -71,7 +71,7 @@ key, never a blob URL. A successful response is `201` with:
 
 ## Constraints & decisions
 
-- The endpoint uses the existing dev identity stub and does not add Auth.js.
+- The endpoint derives identity with `currentUserId()` from the Google session ([auth](../auth.md)).
 - `extension` is accepted only as Capture provenance. Extension visits,
   listings, product data, and extension workflows remain out of scope.
 - Blob storage and Postgres are separate systems; their writes are not one

@@ -22,7 +22,7 @@ production behavior diverge, controlled by configuration, not code branches.
 | Database (dev) | Local Postgres via `apps/db-server/` | Azure Postgres | `DATABASE_URL` |
 | Blob storage | Azurite | Azure Blob Storage | `AZURE_STORAGE_CONNECTION_STRING` |
 | Queue | Azurite | Azure Storage Queue | `AZURE_STORAGE_CONNECTION_STRING` |
-| Identity | Dev stub (`x-user-id` header, env fallback) | Real auth (OAuth, JWTs) | `ALLOW_DEV_IDENTITY` guard + package replacement |
+| Identity | Google Auth.js database session | Google Auth.js database session | Same Google session locally and in production |
 
 ## Design intent
 
@@ -31,20 +31,21 @@ production behavior diverge, controlled by configuration, not code branches.
   which one the SDK connects to.
 - **Default to running.** Every seam works out of the box with zero cloud
   setup. `pnpm dev` starts the stand-ins (Postgres, Azurite).
-- **Safe by default.** The identity stub, and any other stand-in that could
-  be a security risk, throws in production unless explicitly overridden.
+- **Safe by default.** A stand-in that could be a security risk throws in
+  production unless explicitly overridden. Identity is the Google session
+  locally and in production.
 - **One env var per seam.** Azure Blob and Queue share
   `AZURE_STORAGE_CONNECTION_STRING`; the database has its own
-  (`DATABASE_URL`); identity has its own (`ALLOW_DEV_IDENTITY`). Each seam
-  is a distinct env var away from production, and none requires more than
-  one.
+  (`DATABASE_URL`). Identity is the Google session locally and in
+  production, with no `ALLOW_DEV_IDENTITY` switch. Each other seam is a
+  distinct env var away from production, and none requires more than one.
 
 ## ADRs
 
 - [ADR-0005](../adr/0005-pglite-tests.md) — PGlite as the test-database seam.
 - [ADR-0008](../adr/0008-azurite-seam.md) — Azurite as the blob/queue seam.
-- [ADR-0003](../adr/0003-dev-identity-stub.md) — the identity stub as the auth
-  seam.
+- [ADR-0012](../adr/0012-google-authjs-sessions.md) — identity is the Google
+  session locally and in production. Supersedes ADR-0003.
 
 ## Adding a new seam
 

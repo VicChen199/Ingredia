@@ -1,8 +1,7 @@
 # @project/auth — identity / auth
 
-The "who is the current user?" logic. Currently a deliberately naive dev stub.
-In Week 8 it's replaced with real authentication shared across the web app
-and the worker.
+Who the current user is. Auth.js database sessions with Google, shared by the
+web app. `currentUserId()` is the session lookup.
 
 ## Public API
 
@@ -10,30 +9,31 @@ All exports come from `src/index.ts`:
 
 | Export | What it does |
 |---|---|
-| `currentUserId()` | Returns the current user's ID. Reads from `x-user-id` request header, then `DEV_USER_ID` env var, then falls back to `demo-user`. |
+| `auth()` | Reads the database session. Returns `{ user: { id, name, email, image } }` or null. |
+| `currentUserId()` | Calls `auth()` and returns `session.user.id`. Throws when the session is missing, unknown, or expired. |
+| `signIn` | Starts Google sign-in. |
+| `signOut` | Deletes this `Session`, clears the cookie, and redirects. |
+| `unlinkGoogleAccount(userId)` | Deletes `Account` rows for that user where `provider` is `"google"`, and reports whether a row was deleted. |
+| `handlers` | Auth.js `GET` and `POST` handlers for `/api/auth/*`. |
 
 ## Dependencies
 
-- `next` — for `next/headers` (the dev stub reads the HTTP request's headers)
+- `next-auth` and `@auth/prisma-adapter` — database sessions and the Google provider
+- `@project/db` — the Prisma client the adapter and unlink use
+- `next` — server entry for the Auth.js route handlers
 
 ## Consumers
 
 - `apps/web` — via `@project/auth`
 
-## The dev stub
+## Session lookup
 
 ```ts
 currentUserId()
-  1. x-user-id request header (if present)
-  2. DEV_USER_ID env var (if set)
-  3. "demo-user" (created by the seed script)
+  1. auth() reads the session cookie and the Session row
+  2. the session callback has copied User.id onto that session
+  3. return session.user.id
 ```
 
-In development, this trusts the client to say who they are. That's intentional.
-Week 8 replaces it with real auth (OAuth, JWTs, middleware) that works for both
-the web app and the worker.
-
-## Disabled in production
-
-The dev stub throws if `NODE_ENV === "production"` unless `ALLOW_DEV_IDENTITY` is
-set. Real auth in Week 8 removes this guard.
+A missing session throws `A signed-in user is required`. The same Google
+session is the identity locally and in production.
