@@ -11,6 +11,7 @@ in blob storage and records the owned Capture that refers to it.
 ## Where it lives
 
 - `apps/web/app/api/capture/route.ts` — HTTP endpoint and error mapping.
+- `apps/web/components/preferences-panel.tsx` — landing page capture upload button.
 - `packages/domain/src/capture.ts` — source/image validation and Capture queries.
 - `packages/services/src/storage.ts` — Azure Blob Storage/Azurite adapter.
 - `packages/db/prisma/schema.prisma` — existing Capture persistence contract.
