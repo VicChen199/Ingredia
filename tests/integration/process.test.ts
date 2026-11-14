@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CaptureStatus } from "@project/db";
 
 const OWNER_ID = "process-owner";
@@ -7,6 +7,17 @@ let signedInUserId: string | null = OWNER_ID;
 
 process.env.PGLITE_DATA_DIR = "memory://";
 delete process.env.DATABASE_URL;
+
+const LABEL_BLOB = "capture/label.png";
+const LABEL_IMAGE = { data: new Uint8Array([1, 2, 3]), contentType: "image/png" };
+const OCR_LABEL = "Acme Shampoo\nIngredients: Coconut\nOil, Wheat, Parfum.";
+
+// The blob store and OCR engine are faked; their adapters are covered in packages/services.
+const services = vi.hoisted(() => ({
+  downloadAttachment: vi.fn(),
+  readLabelText: vi.fn(),
+}));
+vi.mock("../../packages/services/src/index", () => services);
 
 vi.mock("../../packages/auth/src/index", () => ({
   currentUserId: async () => {
@@ -26,9 +37,13 @@ type ProcessBody = {
   items: { sortOrder: number; rawToken: string; ingredientId: string | null; matchStatus: string }[];
 };
 
-async function createCapture(userId = OWNER_ID, status: CaptureStatus = db.CaptureStatus.uploaded) {
+async function createCapture(
+  userId = OWNER_ID,
+  status: CaptureStatus = db.CaptureStatus.uploaded,
+  blobName: string | null = LABEL_BLOB,
+) {
   const capture = await db.prisma.capture.create({
-    data: { userId, source: db.CaptureSource.camera, status },
+    data: { userId, source: db.CaptureSource.camera, status, blobName },
   });
   return capture.id;
 }
@@ -67,6 +82,15 @@ describe("POST /api/captures/:id/process", () => {
     });
   });
 
+  beforeEach(() => {
+    services.downloadAttachment.mockReset();
+    services.downloadAttachment.mockImplementation(async (blobName: string) =>
+      blobName === LABEL_BLOB ? LABEL_IMAGE : null,
+    );
+    services.readLabelText.mockReset();
+    services.readLabelText.mockResolvedValue(OCR_LABEL);
+  });
+
   afterAll(async () => {
     await db.prisma.user.deleteMany({ where: { id: { in: [OWNER_ID, OTHER_USER_ID] } } });
     await db.prisma.$disconnect();
@@ -98,17 +122,87 @@ describe("POST /api/captures/:id/process", () => {
       [1, "Wheat", "matched"],
       [2, "Parfum", "matched"],
     ]);
+    expect(services.downloadAttachment).not.toHaveBeenCalled();
+    expect(services.readLabelText).not.toHaveBeenCalled();
   });
 
-  it("uses the stub label text when no body is sent", async () => {
+  it("reads the label image with OCR when no text is sent", async () => {
     const captureId = await createCapture();
 
     const response = await processRequest(captureId);
 
     expect(response.status).toBe(200);
+    expect(services.downloadAttachment).toHaveBeenCalledWith(LABEL_BLOB);
+    expect(services.readLabelText).toHaveBeenCalledWith(LABEL_IMAGE.data, LABEL_IMAGE.contentType);
+    const body = (await response.json()) as ProcessBody;
+    expect(body.items.map((item) => [item.rawToken, item.matchStatus, item.ingredientId])).toEqual([
+      ["Coconut Oil", "matched", "ing-coconut-oil"],
+      ["Wheat", "matched", "ing-wheat"],
+      ["Parfum", "matched", "ing-fragrance"],
+    ]);
     const capture = await db.prisma.capture.findUnique({ where: { id: captureId } });
-    expect(capture?.rawText).toBe(domain.STUB_LABEL_TEXT);
-    expect(await db.prisma.captureItem.count({ where: { captureId } })).toBeGreaterThan(0);
+    expect(capture?.status).toBe("parsed");
+    expect(capture?.rawText).toBe("Acme Shampoo Ingredients: Coconut Oil, Wheat, Parfum.");
+  });
+
+  it.each([
+    ["the capture has no image", () => createCapture(OWNER_ID, db.CaptureStatus.uploaded, null)],
+    ["the blob is missing", () => createCapture(OWNER_ID, db.CaptureStatus.uploaded, "capture/gone.png")],
+    [
+      "OCR fails",
+      () => {
+        services.readLabelText.mockRejectedValueOnce(new Error("engine timed out"));
+        return createCapture();
+      },
+    ],
+  ])("returns 502 and leaves the capture uploaded when %s", async (_label, setup) => {
+    const captureId = await setup();
+
+    const response = await processRequest(captureId);
+
+    expect(response.status).toBe(502);
+    const body = (await response.json()) as { error: { code: string; message: string } };
+    expect(body.error.code).toBe("TEXT_EXTRACTION_FAILED");
+    expect(body.error.message).not.toContain("engine timed out");
+    const capture = await db.prisma.capture.findUnique({ where: { id: captureId } });
+    expect(capture?.status).toBe("uploaded");
+    expect(capture?.rawText).toBeNull();
+    expect(await db.prisma.captureItem.count({ where: { captureId } })).toBe(0);
+  });
+
+  it.each([[""], ["Ingredients: , ."]])(
+    "returns 422 and leaves the capture uploaded when OCR text %j has no ingredients",
+    async (ocrText) => {
+      services.readLabelText.mockResolvedValueOnce(ocrText);
+      const captureId = await createCapture();
+
+      const response = await processRequest(captureId);
+
+      expect(response.status).toBe(422);
+      expect(((await response.json()) as { error: { code: string } }).error.code).toBe(
+        "NO_INGREDIENTS_FOUND",
+      );
+      const capture = await db.prisma.capture.findUnique({ where: { id: captureId } });
+      expect(capture?.status).toBe("uploaded");
+      expect(capture?.rawText).toBeNull();
+    },
+  );
+
+  it("processes on retry after a failed OCR read", async () => {
+    services.readLabelText.mockRejectedValueOnce(new Error("engine down"));
+    const captureId = await createCapture();
+
+    expect((await processRequest(captureId)).status).toBe(502);
+    expect((await processRequest(captureId)).status).toBe(200);
+  });
+
+  it("drops text before an Ingredients: label anywhere in pasted text", async () => {
+    const captureId = await createCapture();
+
+    const response = await processRequest(captureId, { text: "Acme Bread, Organic. Ingredients: Wheat" });
+
+    const body = (await response.json()) as ProcessBody;
+    expect(body.items.map((item) => item.rawToken)).toEqual(["Wheat"]);
   });
 
   it("normalizes case, accents, and the Ingredients: label before matching", async () => {
@@ -187,6 +281,16 @@ describe("POST /api/captures/:id/process", () => {
     );
     const capture = await db.prisma.capture.findUnique({ where: { id: captureId } });
     expect(capture?.status).toBe("uploaded");
+  });
+
+  it("does not read the image of a foreign or already-processed capture", async () => {
+    const foreignId = await createCapture(OTHER_USER_ID);
+    const parsedId = await createCapture(OWNER_ID, db.CaptureStatus.parsed);
+
+    expect((await processRequest(foreignId)).status).toBe(404);
+    expect((await processRequest(parsedId)).status).toBe(409);
+    expect(services.downloadAttachment).not.toHaveBeenCalled();
+    expect(services.readLabelText).not.toHaveBeenCalled();
   });
 
   it("returns 404 for an unknown capture id", async () => {

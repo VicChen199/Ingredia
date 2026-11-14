@@ -1,13 +1,14 @@
-// Capture processing: stub text extraction, tokenizing, alias matching, and
-// CaptureItem writes. Behavior contract: docs/specs/capture/process.md.
+// Capture processing: choosing pasted text or the image reader, tokenizing,
+// alias matching, and CaptureItem writes. Behavior contract:
+// docs/specs/capture/process.md.
 import { z } from "zod";
 import { CaptureStatus, prisma } from "@project/db";
 
 export const MAX_PROCESS_TEXT_LENGTH = 10_000;
 
-// Stands in for OCR until a provider is chosen; uses the seeded demo aliases.
-export const STUB_LABEL_TEXT =
-  "Ingredients: Water, Glycerin, Coconut Oil, Wheat, Parfum.";
+// Reads label text from a Capture's stored image. Injected by the route so
+// domain never imports the OCR or storage SDKs.
+export type ImageTextReader = (blobName: string) => Promise<string>;
 
 export const processRequestSchema = z.object({
   text: z.string().trim().min(1).max(MAX_PROCESS_TEXT_LENGTH).optional(),
@@ -32,13 +33,15 @@ export class ProcessError extends Error {
   }
 }
 
-export function extractText(text?: string): string {
-  return text ?? STUB_LABEL_TEXT;
+// OCR wraps label lines mid-ingredient, so its line breaks are not separators.
+export function cleanOcrText(text: string): string {
+  return text.replace(/\s*\r?\n\s*/g, " ").trim();
 }
 
-// Splits on commas, semicolons, and line breaks outside parentheses/brackets.
+// Drops everything up to the first "Ingredients:" label, then splits on
+// commas, semicolons, and line breaks outside parentheses/brackets.
 export function tokenize(text: string): string[] {
-  const body = text.replace(/^\s*ingredients\s*:/i, "");
+  const body = text.replace(/^[\s\S]*?ingredients\s*:/i, "");
   const tokens: string[] = [];
   let depth = 0;
   let current = "";
@@ -101,22 +104,43 @@ async function matchTokens(tokens: string[]): Promise<ProcessedItem[]> {
   });
 }
 
-export async function processCapture(userId: string, captureId: string, text?: string) {
-  const rawText = extractText(text);
-  const tokens = tokenize(rawText);
-  if (tokens.length === 0) {
+async function readCaptureText(blobName: string | null, readImageText: ImageTextReader) {
+  if (blobName) {
+    try {
+      return cleanOcrText(await readImageText(blobName));
+    } catch {
+      // Fall through: any read failure leaves the Capture uploaded.
+    }
+  }
+  throw new ProcessError("TEXT_EXTRACTION_FAILED", 502, "the label image could not be read");
+}
+
+export async function processCapture(
+  userId: string,
+  captureId: string,
+  text: string | undefined,
+  readImageText: ImageTextReader,
+) {
+  if (text !== undefined && tokenize(text).length === 0) {
     throw new ProcessError("INVALID_PROCESS_REQUEST", 400, "text contains no ingredients");
   }
 
   const capture = await prisma.capture.findUnique({
     where: { id_userId: { id: captureId, userId } },
-    select: { status: true },
+    select: { status: true, blobName: true },
   });
   if (!capture) {
     throw new ProcessError("CAPTURE_NOT_FOUND", 404, "capture not found");
   }
   if (capture.status !== CaptureStatus.uploaded) {
     throw new ProcessError("CAPTURE_NOT_PROCESSABLE", 409, "capture has already been processed");
+  }
+
+  // OCR runs before the status claim, so a failed read does not consume the Capture.
+  const rawText = text ?? (await readCaptureText(capture.blobName, readImageText));
+  const tokens = tokenize(rawText);
+  if (tokens.length === 0) {
+    throw new ProcessError("NO_INGREDIENTS_FOUND", 422, "no ingredients were found on the label");
   }
 
   // Conditional claim: a concurrent request that already moved the status wins.

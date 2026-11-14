@@ -22,6 +22,8 @@ production behavior diverge, controlled by configuration, not code branches.
 | Database (dev) | Local Postgres via `apps/db-server/` | Azure Postgres | `DATABASE_URL` |
 | Blob storage | Azurite | Azure Blob Storage | `AZURE_STORAGE_CONNECTION_STRING` |
 | Queue | Azurite | Azure Storage Queue | `AZURE_STORAGE_CONNECTION_STRING` |
+| Identity | Dev stub (`x-user-id` header, env fallback) | Real auth (OAuth, JWTs) | `ALLOW_DEV_IDENTITY` guard + package replacement |
+| OCR | Fixed sample label text | Azure AI Document Intelligence | `OCR_CONNECTION_STRING` |
 | Identity | Google Auth.js database session | Google Auth.js database session | Same Google session locally and in production |
 
 ## Design intent
@@ -44,7 +46,11 @@ production behavior diverge, controlled by configuration, not code branches.
 
 - [ADR-0005](../adr/0005-pglite-tests.md) — PGlite as the test-database seam.
 - [ADR-0008](../adr/0008-azurite-seam.md) — Azurite as the blob/queue seam.
-- [ADR-0012](../adr/0012-google-authjs-sessions.md) — identity is the Google
+- [ADR-0003](../adr/0003-dev-identity-stub.md) — the identity stub as the auth
+  seam.
+- [ADR-0012](../adr/0012-ocr-seam.md) — Document Intelligence behind the OCR
+  seam.
+- [ADR-0013](../adr/0013-google-authjs-sessions.md) — identity is the Google
   session locally and in production. Supersedes ADR-0003.
 
 ## Adding a new seam
