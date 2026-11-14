@@ -5,7 +5,8 @@ Navigate the documentation by the question you're asking:
 | Question | Where to look |
 |---|---|
 | "Why did we choose X?" | `docs/adr/` — one file per decision |
-| "How does subsystem Y fit together?" | `docs/specs/` — per-subsystem specs, tagged by type |
+| "How does subsystem Y fit together?" | `docs/specs/` — infrastructure at the top, product domains in folders |
+| "Which env vars exist, and who has the secrets?" | [`docs/specs/environment.md`](specs/environment.md) |
 | "What went wrong before, and what did we learn?" | `docs/postmortems/` — write-once bug history |
 | "Something broke — what do I do?" | `docs/runbooks/` — drilled, step-by-step procedures |
 | "What does this file do?" | The 2–3 line header comment at the top of the source file |
@@ -24,8 +25,11 @@ Specs in `docs/specs/` use a `type:` frontmatter tag:
   (seams, monorepo, storage adapters). Live on `main`, inherited by all branches.
   New ones start from `docs/specs/_template-infrastructure.md`.
 - **`feature`** — user-facing behavior of the application. Live under
-  `docs/specs/<domain>/<feature>.md`, grouped by domain.
+  `docs/specs/<domain>/<feature>.md`, grouped by domain
+  (`capture/`, `phases/`, `identity/`).
   New ones start from `docs/specs/_template-feature.md`.
+  Slice files live in `docs/specs/features/`. Working plans live in
+  `docs/specs/plans/`.
 
 Specs are evergreen — update in place as the feature changes; rename or
 reorganize within a domain folder when features merge or split.
@@ -55,7 +59,7 @@ packages/                       # shared libraries
 ├── services/                   #   Azure adapters (queue, storage, notify)
 ├── domain/                     #   Zod schemas + queries (web-only)
 ├── log/                        #   pino logger
-└── auth/                       #   dev identity stub
+└── auth/                       #   Google Auth.js session
 ```
 
 **Rules**: apps are deployable, packages are shared; no app imports from another app;

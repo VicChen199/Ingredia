@@ -1,3 +1,3 @@
-// Re-exports the auth/identity layer. Currently a dev stub (currentUserId from
-// headers); replaced with real auth in Week 8.
+export { auth, handlers, signIn, signOut } from "./auth";
 export { currentUserId } from "./current-user";
+export { unlinkGoogleAccount } from "./unlink-google";

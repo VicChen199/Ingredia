@@ -155,7 +155,7 @@ A successful response is `200` with:
   status claim, so a `502` or `422` leaves the Capture `uploaded` for a retry.
   Only failures after text is saved mark it `failed`.
 - **Processing runs once.** Only `uploaded` captures are processed, so a
-  Capture is an immutable snapshot (see [data model](../data-model.md)).
+  Capture is an immutable snapshot (see [data model](../phases/data-model.md)).
   Re-processing a `failed` Capture is not supported yet.
 - **Synchronous.** OCR runs in the request with a 30-second budget, not on the
   worker queue; the worker cannot import `packages/domain`

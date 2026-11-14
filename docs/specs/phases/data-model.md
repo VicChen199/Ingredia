@@ -5,7 +5,7 @@ type: feature
 
 Field contract for Ingredia, as **legal subsets**: POC local, then cloud additions, then stretch additions. Do not implement the stretch graph in the first migration.
 
-When to build each subset, done-when, and Prisma **sequencing** (squash until first Azure `migrate deploy`, then append-only) are in [development-phases.md](./development-phases.md). This file does not contain migration SQL, Auth.js wiring, OCR, or the extension UI.
+When to build each subset, done-when, and Prisma **sequencing** (squash until first Azure `migrate deploy`, then append-only) are in [development-phases.md](./development-phases.md). This file does not contain migration SQL, the Auth.js route wiring, OCR, or the extension UI. The session behavior is in [auth.md](../auth.md). `Account`, `Session`, and `VerificationToken` are in the current schema. `Evidence`, `RegulatoryStatus`, and the stretch tables are future.
 
 Later implementation uses Postgres + Prisma. Image **blob names** live in the database; bytes live in Azurite (POC / local stretch work) or Azure Blob (cloud). Do not store blob URLs as identity. See ADR-0006 on the `template` branch.
 
@@ -18,11 +18,11 @@ One Postgres schema, additive models. Cloud and stretch **add** tables and colum
 | `User`, `PreferenceFlag`, `UserPreference` | POC |
 | `Ingredient`, `IngredientAlias`, `IngredientProfile`, `IngredientFlag` | POC |
 | `Capture` (camera fields), `CaptureItem`, `Favorite` | POC |
-| `Account` (Session / VerificationToken as infra) | Cloud |
-| `Evidence`, `RegulatoryStatus` | Cloud |
-| `Brand`, `Product`, `ProductIngredient`, `Retailer`, `ProductListing` | Stretch |
-| `ExtensionVisit` | Stretch |
-| Capture `page_url`, `retailer_id`, `product_id`; writing `source = extension` | Stretch |
+| `Account`, `Session`, `VerificationToken` | Implemented |
+| `Evidence`, `RegulatoryStatus` | Cloud (future) |
+| `Brand`, `Product`, `ProductIngredient`, `Retailer`, `ProductListing` | Stretch (future) |
+| `ExtensionVisit` | Stretch (future) |
+| Capture `page_url`, `retailer_id`, `product_id`; writing `source = extension` | Stretch (future) |
 
 POC must not create unused listing/visit tables “so we don’t migrate later.”
 
@@ -36,7 +36,7 @@ Private tables always filter `WHERE user_id = currentUser`. A user never lists, 
 |---|---|---|
 | PreferenceFlag | User, UserPreference | POC |
 | Ingredient, aliases, profile, ingredient flags | Capture, CaptureItem, Favorite | POC |
-| Evidence, RegulatoryStatus | Account | Cloud |
+| Evidence, RegulatoryStatus | Account | Evidence and RegulatoryStatus are future. Account is implemented |
 | Brand, Product, ProductIngredient, Retailer, ProductListing | ExtensionVisit | Stretch |
 
 Do not store passwords, age, `google_id` on User, goal-id arrays, or blob URLs.
@@ -45,7 +45,7 @@ Do not store passwords, age, `google_id` on User, goal-id arrays, or blob URLs.
 
 ```mermaid
 flowchart TD
-  subgraph poc [POC]
+  subgraph current [Current schema]
     User --> UserPreference
     PreferenceFlag --> UserPreference
     User --> Capture
@@ -57,14 +57,14 @@ flowchart TD
     Ingredient --> IngredientProfile
     Ingredient --> IngredientFlag
     PreferenceFlag --> IngredientFlag
-  end
-  subgraph cloud [Cloud]
     Google[Google_OAuth] --> Account
     Account --> User
+  end
+  subgraph cloud [Cloud future]
     Ingredient --> Evidence
     Ingredient --> RegulatoryStatus
   end
-  subgraph stretch [Stretch]
+  subgraph stretch [Stretch future]
     User --> ExtensionVisit
     ExtensionVisit --> ProductListing
     ExtensionVisit --> Product
@@ -80,7 +80,7 @@ flowchart TD
 
 ## POC local
 
-Stub `User`, camera Capture, alias match, preference flags, Favorite. Local Postgres + Azurite. No Google, no Product, no extension tables.
+Google session, camera Capture, alias match, preference flags, Favorite. Local Postgres + Azurite. No Product and no extension tables. `Evidence` and `RegulatoryStatus` are future.
 
 ### Flows
 
@@ -90,7 +90,7 @@ Stub `User`, camera Capture, alias match, preference flags, Favorite. Local Post
 
 ### User
 
-Auth.js-shaped so cloud can add `Account` instead of replacing this row. POC uses a stub user. No `Account`, no passwords, no Google client IDs.
+Created by Google sign-in. Auth.js-shaped. No password. No `google_id`. The seed does not create a user. `Account`, `Session`, and `VerificationToken` are in the current schema; their rules are under Cloud additions, and the session behavior is in [auth.md](../auth.md).
 
 - `id`
 - `name`
@@ -189,17 +189,17 @@ A handful of ingredients, aliases, flags, and profiles — enough to demo gluten
 
 ## Cloud additions
 
-Same camera tables. Real identity, Azure storage, encyclopedia depth. No Retailer, Product, listings, or ExtensionVisit. There is still no `product_id` column on Capture.
+Same camera tables. Identity is implemented. Azure storage and encyclopedia depth are future. No Retailer, Product, listings, or ExtensionVisit. There is still no `product_id` column on Capture.
 
 ### Account
 
-OAuth link (Auth.js-style). Unique `(provider, providerAccountId)`. Google is `provider = "google"`. This is the only Google-account modeling required.
+Implemented, in `0002_auth.sql`. OAuth link. Unique `(provider, providerAccountId)`. Google is `provider = "google"`. This is the only Google-account modeling required.
 
-Auth.js also expects Session and VerificationToken when login is wired. Those are infra, not domain. Do not add a `password` column instead. Do not put `google_id` on User.
+`Session` and `VerificationToken` are in the same migration. They are infra, not domain. Google sign-in does not write `VerificationToken`. There is no `password` column. There is no `google_id` on User. Unlink deletes the Google `Account` and leaves `User`, `Session`, captures, and favorites. See [auth.md](../auth.md).
 
 ### Evidence
 
-1:N on Ingredient.
+**Future.** Not in the current schema. 1:N on Ingredient.
 
 - `ingredient_id` → Ingredient
 - `summary`
@@ -209,7 +209,7 @@ Auth.js also expects Session and VerificationToken when login is wired. Those ar
 
 ### RegulatoryStatus
 
-1:N. One ingredient, many countries. Legal in US and restricted in EU is two rows, not one string on the profile.
+**Future.** Not in the current schema. 1:N. One ingredient, many countries. Legal in US and restricted in EU is two rows, not one string on the profile.
 
 - `ingredient_id` → Ingredient
 - `jurisdiction` (`US` | `EU` | `CA` | …)
@@ -227,7 +227,7 @@ Auth.js also expects Session and VerificationToken when login is wired. Those ar
 
 ## Stretch additions
 
-Extension as a second client. Product catalog, listings, visit diary. Capture gains intake columns. Brand formulations are products + bill of materials, never extra columns on IngredientAlias. Current formula only — no `ProductRevision` in this pass.
+**Future.** Extension as a second client. Product catalog, listings, visit diary. Capture gains intake columns. Brand formulations are products + bill of materials, never extra columns on IngredientAlias. Current formula only — no `ProductRevision` in this pass.
 
 Localhost + Azurite is valid while building. Cloud hosting is not a prerequisite for content scripts.
 
@@ -315,7 +315,7 @@ Query: `WHERE user_id = ? ORDER BY occurred_at DESC`.
 
 Application debounce (not a primary key): one visit per `(user_id, page_url)` per 15 minutes — update `occurred_at` / bump `hit_flag_count` instead of inserting.
 
-Signed-out overlays create no server row (the extension may keep a local queue). History starts after Google sign-in. A local stretch spike against a stub user may write visits for that stub; that is not signed-out.
+Signed-out overlays create no server row (the extension may keep a local queue). History starts after Google sign-in. A local stretch spike may write visits for the signed-in user. That is not signed-out. Stretch itself is future.
 
 ### Stretch delete behavior
 

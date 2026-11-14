@@ -55,7 +55,7 @@ Example detail (the list contains objects of the same shape):
 - With local dev and seeded data running, request `/api/captures` and `/api/captures/<owned-id>`; verify 200, and request an unknown id to verify 404. No Azure account is needed.
 
 ## Constraints & decisions
-- Use the existing schema and identity stub ([auth](../auth.md)); validation and queries live in domain per [web](../web.md).
+- Use the existing schema and the Google session ([auth](../auth.md)); validation and queries live in domain per [web](../web.md).
 - Captures have no product category, so scope metadata is exposed without inferring whether flags apply to this product.
 - Ingredient profiles and preference annotations reflect current catalog/preferences; the stored item tokens and matches are unchanged.
 - Return full results on both endpoints without pagination for the local POC. Never return user records, blob URLs, aliases, or raw Prisma objects.
