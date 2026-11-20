@@ -1,0 +1,22 @@
+# Dependencies and builds are created inside the image; secrets stay outside.
+**/node_modules
+.pnpm-store
+**/.next
+**/.turbo
+**/dist
+**/*.tsbuildinfo
+packages/db/src/generated
+.pgdata
+.pglite
+.azurite
+.git
+.github
+.opencode
+.codex
+.agents
+.idea
+.worktrees
+**/.DS_Store
+.env*
+**/.env*
+!.env.example

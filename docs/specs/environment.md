@@ -27,9 +27,36 @@ Other knobs, all optional for local dev:
 - `AZURE_STORAGE_CONNECTION_STRING` — unset uses Azurite. Set it to use a real Azure storage account.
 - `LOG_LEVEL` — `debug`, `info`, `warn`, or `error`.
 
+## Docker Compose
+
+Both Compose files require `AUTH_SECRET`, `AUTH_GOOGLE_ID`, and
+`AUTH_GOOGLE_SECRET` from the shell or the untracked `.env`. They do not
+load that file into the image. `WEB_PORT` optionally changes the loopback
+host port from 3000.
+
+`compose.yaml` supplies its own local Postgres and Azurite connection strings;
+host-process `DATABASE_URL` and `AZURE_STORAGE_CONNECTION_STRING` values are
+not used by this stack. Its auth origin is `http://localhost:<WEB_PORT>`.
+
+`compose.prod.yaml` additionally requires:
+
+- `APP_IMAGE` — the tested, full GHCR commit tag; shared by web and migrations.
+- `POSTGRES_PASSWORD` — a strong URL-safe password, such as random hex. It is
+  embedded in the internal database URL and must not contain URI delimiters.
+- `AUTH_URL` — the public HTTPS origin, matching the Google OAuth callback.
+- `AZURE_STORAGE_CONNECTION_STRING` — the real Azure storage account.
+
+`AUTH_TRUST_HOST=true` is set by both Compose files. The production web port
+is loopback-only and requires a trusted HTTPS reverse proxy on the VPS.
+The production database password initializes a new volume; changing the
+environment variable alone does not rotate an existing database password.
+
 ## Verify
 
 `.env` is listed in `.gitignore`. `.env.example` names `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and `AUTH_SECRET` and contains no secret values.
+Both Compose configurations validate with their documented variables.
+Production configuration fails when a required image, credential, public
+origin, or storage connection string is absent.
 
 ## Key ADRs
 

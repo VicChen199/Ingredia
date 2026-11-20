@@ -31,4 +31,5 @@ Start from [`_template.md`](_template.md).
 
 | Runbook | When |
 |---|---|
-| _(none yet — the first arrives with the deploy machinery)_ | |
+| [run-compose](run-compose.md) | Start or update the local stack or a single VPS |
+| [provision-migration-job](provision-migration-job.md) | Configure or restore image publishing and the Azure migration job |
