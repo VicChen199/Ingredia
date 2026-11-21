@@ -23,11 +23,11 @@ export function UnlinkGoogleButton() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col items-stretch gap-2">
       <button
         type="button"
         onClick={() => void unlink()}
-        className="inline-flex items-center rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-800 transition hover:bg-neutral-100"
+        className="inline-flex w-full items-center rounded-md border border-neutral-300 bg-white px-3 py-2 text-left text-sm font-medium text-neutral-800 transition hover:bg-neutral-100"
       >
         Unlink Google
       </button>

@@ -300,8 +300,8 @@ export function UserActionsAndPreferences({ userId }: UserActionsAndPreferencesP
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-xs">
+    <div id="account-preferences" className="space-y-4">
+      <div className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-xs">
         <div className="text-sm text-neutral-600">
           Signed in as{" "}
           <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-neutral-900">
@@ -316,7 +316,7 @@ export function UserActionsAndPreferences({ userId }: UserActionsAndPreferencesP
           role="toolbar"
           aria-label={`Actions for ${userId}`}
           onKeyDown={handleToolbarKeyDown}
-          className="flex items-center gap-2"
+          className="flex flex-col items-stretch gap-2"
         >
           <a
             ref={healthLinkRef}
