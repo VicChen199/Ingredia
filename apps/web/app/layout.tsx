@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className="mx-auto max-w-2xl px-4 py-10 font-sans text-neutral-900 antialiased"
+        className="min-h-screen font-sans text-neutral-900 antialiased"
       >
         {children}
       </body>

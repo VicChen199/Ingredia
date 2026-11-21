@@ -31,9 +31,15 @@ export function UserActionsAndPreferences({ userId }: UserActionsAndPreferencesP
 
   const healthLinkRef = useRef<HTMLAnchorElement | null>(null);
   const prefsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const captureButtonRef = useRef<HTMLButtonElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const retryButtonRef = useRef<HTMLButtonElement | null>(null);
   const refreshEmptyButtonRef = useRef<HTMLButtonElement | null>(null);
   const checkboxRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const [uploading, setUploading] = useState(false);
+  const [captureToast, setCaptureToast] = useState<string | null>(null);
+  const [captureToastType, setCaptureToastType] = useState<"success" | "error" | null>(null);
 
   const fetchPreferences = useCallback(async () => {
     setLoading(true);
@@ -130,6 +136,47 @@ export function UserActionsAndPreferences({ userId }: UserActionsAndPreferencesP
     [enabledIds, pendingIds],
   );
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setCaptureToast(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("source", "camera");
+
+      const response = await fetch("/api/capture", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
+        throw new Error(body?.error?.message ?? `Upload failed (${response.status})`);
+      }
+
+      const data = (await response.json()) as {
+        capture: { id: string; status: string };
+      };
+
+      setCaptureToastType("success");
+      setCaptureToast(`Capture uploaded successfully (${data.capture.id})`);
+    } catch (err) {
+      setCaptureToastType("error");
+      setCaptureToast(err instanceof Error ? err.message : "Failed to upload capture.");
+    } finally {
+      setUploading(false);
+      if (event.target) {
+        event.target.value = "";
+      }
+    }
+  };
+
   const focusFirstPanelControl = () => {
     if (error && retryButtonRef.current) {
       retryButtonRef.current.focus();
@@ -144,13 +191,30 @@ export function UserActionsAndPreferences({ userId }: UserActionsAndPreferencesP
 
   const handleToolbarKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const active = document.activeElement;
+    const toolbarItems = (
+      [healthLinkRef.current, prefsButtonRef.current, captureButtonRef.current] as const
+    ).filter((el): el is NonNullable<typeof el> => el !== null);
 
-    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+    const currentIndex = toolbarItems.findIndex((item) => item === active);
+
+    if (event.key === "ArrowRight") {
       event.preventDefault();
-      if (active === healthLinkRef.current) {
-        prefsButtonRef.current?.focus();
+      if (currentIndex >= 0) {
+        const nextIndex = (currentIndex + 1) % toolbarItems.length;
+        toolbarItems[nextIndex]?.focus();
       } else {
-        healthLinkRef.current?.focus();
+        toolbarItems[0]?.focus();
+      }
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      if (currentIndex >= 0) {
+        const prevIndex = (currentIndex - 1 + toolbarItems.length) % toolbarItems.length;
+        toolbarItems[prevIndex]?.focus();
+      } else {
+        toolbarItems[toolbarItems.length - 1]?.focus();
       }
       return;
     }
@@ -161,6 +225,8 @@ export function UserActionsAndPreferences({ userId }: UserActionsAndPreferencesP
         focusFirstPanelControl();
       } else if (active === healthLinkRef.current) {
         prefsButtonRef.current?.focus();
+      } else if (active === prefsButtonRef.current) {
+        captureButtonRef.current?.focus();
       } else {
         setIsOpen(true);
       }
@@ -169,7 +235,9 @@ export function UserActionsAndPreferences({ userId }: UserActionsAndPreferencesP
 
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      if (active === prefsButtonRef.current) {
+      if (active === captureButtonRef.current) {
+        prefsButtonRef.current?.focus();
+      } else if (active === prefsButtonRef.current) {
         healthLinkRef.current?.focus();
       } else {
         prefsButtonRef.current?.focus();
@@ -232,8 +300,8 @@ export function UserActionsAndPreferences({ userId }: UserActionsAndPreferencesP
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-xs">
+    <div id="account-preferences" className="space-y-4">
+      <div className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-xs">
         <div className="text-sm text-neutral-600">
           Signed in as{" "}
           <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-neutral-900">
@@ -248,7 +316,7 @@ export function UserActionsAndPreferences({ userId }: UserActionsAndPreferencesP
           role="toolbar"
           aria-label={`Actions for ${userId}`}
           onKeyDown={handleToolbarKeyDown}
-          className="flex items-center gap-2"
+          className="flex flex-col items-stretch gap-2"
         >
           <a
             ref={healthLinkRef}
@@ -268,8 +336,41 @@ export function UserActionsAndPreferences({ userId }: UserActionsAndPreferencesP
           >
             {isOpen ? "Hide preferences" : "Preferences"}
           </button>
+
+          <button
+            ref={captureButtonRef}
+            type="button"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center rounded-md border border-neutral-300 bg-neutral-50 px-3 py-1.5 text-sm font-medium text-neutral-800 transition hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50"
+          >
+            {uploading ? "Uploading..." : "Capture"}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => void handleFileChange(e)}
+            className="hidden"
+            aria-label="Upload capture image"
+          />
         </div>
       </div>
+
+      {captureToast && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className={`rounded-md border px-3 py-2 text-sm ${
+            captureToastType === "success"
+              ? "border-green-300 bg-green-50 text-green-800"
+              : "border-red-300 bg-red-50 text-red-800"
+          }`}
+        >
+          {captureToast}
+        </div>
+      )}
 
       <p className="text-xs text-neutral-500">
         Keyboard: use <kbd className="rounded border border-neutral-300 bg-neutral-100 px-1">Tab</kbd>{" "}

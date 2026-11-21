@@ -6,6 +6,17 @@ type: infrastructure
 The Next.js app (`apps/web/`) carries three cross-cutting contracts that hold
 on every branch, for every feature.
 
+## Home page shell
+
+- The home page fills the viewport with a left sidebar and a main content pane.
+- At medium and larger viewport widths, the sidebar occupies one quarter of
+  the available width; on smaller screens it stacks above the main pane.
+- The sidebar contains Home and Preferences navigation links, plus the
+  signed-in or signed-out account controls. Preference settings remain
+  available only to signed-in users.
+- The main pane contains the home page content and does not duplicate the
+  account action buttons.
+
 ## Health endpoint
 
 - `GET /api/health` returns `{ status: "ok", db: "ok" }` when the process and
