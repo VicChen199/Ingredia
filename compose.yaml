@@ -1,0 +1,75 @@
+name: ingredia-local
+
+services:
+  web:
+    image: ${APP_IMAGE:-ingredia-web:local}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      azurite:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/ingredia
+      # Public Azurite development credentials, with Docker service endpoints.
+      AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:?Set AUTH_GOOGLE_ID}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:?Set AUTH_GOOGLE_SECRET}
+      AUTH_URL: http://localhost:${WEB_PORT:-3000}
+      AUTH_TRUST_HOST: "true"
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  migrate:
+    image: ${APP_IMAGE:-ingredia-web:local}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    command: [/app/apps/migrate/node_modules/.bin/tsx, /app/apps/migrate/src/index.ts]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/ingredia
+
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ingredia
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d ingredia"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.36.0
+    restart: unless-stopped
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --location /data --skipApiVersionCheck --disableProductStyleUrl
+    volumes:
+      - azurite-data:/data
+    healthcheck:
+      test: [CMD, node, -e, "Promise.all([10000,10001].map(p => fetch('http://127.0.0.1:'+p+'/devstoreaccount1?comp=list'))).then(() => process.exit(0)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgres-data:
+  azurite-data:
